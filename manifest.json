@@ -4,7 +4,7 @@
 	"manifest_version": 2,
 	"version": "0",
 	"permissions": [
-		"https://twitter.com/"
+		"https://twitter.com/*"
 	],
 	"content_scripts": [{
 		"matches": ["https://twitter.com/*"],
