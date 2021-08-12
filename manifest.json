@@ -1,0 +1,14 @@
+{
+	"name": "fuck twitter",
+	"description": "ligma",
+	"manifest_version": 2,
+	"version": "0",
+	"permissions": [
+		"https://twitter.com/"
+	],
+	"content_scripts": [{
+		"matches": ["https://twitter.com/*"],
+		"run_at": "document_start",
+		"js": ["script.js"]
+	}]
+}
