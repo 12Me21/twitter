@@ -4,11 +4,12 @@
 	"manifest_version": 2,
 	"version": "0",
 	"permissions": [
-		"https://twitter.com/"
+		"https://twitter.com/", "activeTab"
 	],
 	"content_scripts": [{
 		"matches": ["https://twitter.com/*"],
 		"run_at": "document_start",
-		"js": ["script.js"]
-	}]
+		"js": ["inject.js"]
+	}],
+	"web_accessible_resources": ["assets/*"]
 }
