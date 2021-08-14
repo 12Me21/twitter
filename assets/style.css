@@ -1,4 +1,28 @@
+html {
+	font-family: roboto, sans-serif;
+}
+
 #\$sidebar {
 	background: pink;
 	width: 30%;
+}
+
+#\$profile_banner_container {
+	width: 100%;
+	aspect-ratio: 3/1;
+}
+
+#\$profile_picture_container {
+	max-width: 25vw;
+	max-height: 25vh;
+	height: 99999px;
+	aspect-ratio: 1/1;
+}
+
+#\$profile_name {
+	font-weight: bold;
+}
+
+#\$profile_username {
+	font-family: monospace;
 }

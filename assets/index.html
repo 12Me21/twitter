@@ -1,0 +1,30 @@
+// yeah this is actually a javascript file
+// I named it .html so the editor will indent and highlight it
+document.body.outerHTML = `
+<body class='flex-row'>
+<!--<div id=$sidebar></div>-->
+<div id=$main class='grow scroll-outer'>
+	<div class='scroll-inner'>
+		
+		<div id=$profile_banner_container><img id=$profile_banner class='fill'></div>
+		
+		<div class='flex-row'>
+			<div id=$profile_picture_container><img id=$profile_picture class='fill'></div>
+			<div class='flex-col grow'>
+				<div>
+					<span id=$profile_name class='pre'></span>
+					<span id=$profile_username class='pre'></span>
+				</div>
+				<div class='grow pre' id=$profile_bio></div>
+			</div>
+		</div>
+		<div>
+			<span id=$profile_website class='pre'></span>
+			<span id=$profile_location class='pre'></span>
+			<time id=$profile_joined class='pre'></time>
+		</div>
+	</div>
+</div>
+</div>
+</body>
+`
