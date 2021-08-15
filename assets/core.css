@@ -23,21 +23,24 @@ body {
 }
 
 
-img {
+* {
 	vertical-align: top;	
 }
 
+{
+	
+}
 
-.flex-row {
+flex-row, .flex-row {
 	display: flex;
 	flex-direction: row;
 }
-.flex-col {
+flex-col, .flex-col {
 	display: flex;
 	flex-direction: column;
 }
 
-.flex-col > *, .flex-row > * {
+flex-col > *, flex-row > *, .flex-col > *, .flex-row > * {
 	flex-shrink: 0;
 }
 
@@ -65,4 +68,8 @@ img {
 .pre {
 	white-space: pre-wrap;
 	unicode-bidi: embed;
+}
+
+.align {
+	align-items: center;
 }

@@ -5,24 +5,29 @@ document.body.outerHTML = `
 <!--<div id=$sidebar></div>-->
 <div id=$main class='grow scroll-outer'>
 	<div class='scroll-inner'>
-		
-		<div id=$profile_banner_container><img id=$profile_banner class='fill'></div>
-		
-		<div class='flex-row'>
-			<div id=$profile_picture_container><img id=$profile_picture class='fill'></div>
-			<div class='flex-col grow'>
-				<div>
-					<span id=$profile_name class='pre'></span>
-					<span id=$profile_username class='pre'></span>
-				</div>
-				<div class='grow pre' id=$profile_bio></div>
-			</div>
-		</div>
-		<div>
-			<span id=$profile_website class='pre'></span>
-			<span id=$profile_location class='pre'></span>
-			<time id=$profile_joined class='pre'></time>
-		</div>
+		<flex-col id=$profile_banner>
+			<div class='grow'></div>
+			<flex-row class='over-image'>
+				<div id=$profile_picture_container><img id=$profile_picture class='fill'></div>
+				<flex-col class='grow'>
+					<flex-row class='align'>
+						<div id=$profile_name class='pre'></div>
+						<div id=$profile_username class='pre'></div>
+						<div class='grow'></div>
+					</flex-row>
+					<flex-row class='grow'>
+						<div class='pre' id=$profile_bio></div>
+						<div class='grow'></div>
+					</flex-row>
+					<div>
+						🔗<span id=$profile_website class='pre'></span> 🌍<span id=$profile_location class='pre'></span> 📅<time id=$profile_joined class='pre'></time>
+					</div>
+					<div>
+						followers: <span id=$profile_follower_count class='pre'></span> tweets: <span id=$profile_tweet_count class='pre'></span>
+					</div>
+				</flex-col>
+			</flex-row>
+		</flex-col>
 	</div>
 </div>
 </div>

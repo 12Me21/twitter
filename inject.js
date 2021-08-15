@@ -13,6 +13,15 @@ function url(file) {
 	return chrome.runtime.getURL('assets/'+file)
 }
 
+let elem = document.createElement('style')
+elem.textContent = `@font-face{
+	font-family: twemoji;
+	font-weight: 400;
+	font-style: normal;
+	src: url("${url('twemoji.ttf')}");
+}`
+document.head.appendChild(elem)
+
 for (let file of ['core.css', 'style.css']) {
 	let elem = document.createElement('link')
 	elem.rel = 'stylesheet'

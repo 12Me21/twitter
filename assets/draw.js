@@ -1,7 +1,7 @@
 function format_text(text, entities) {
 	let parts = [{type:'text',start:0}]
 	for (let url of entities.urls) {
-		parts.push({type:'link',value:url.expanded_url,start:url.indices[0]})
+		parts.push({type:'link',value:url,start:url.indices[0]})
 		parts.push({type:'text',start:url.indices[1]})
 	}
 	let frag = document.createDocumentFragment()
@@ -17,8 +17,8 @@ function format_text(text, entities) {
 			elem = document.createTextNode(text.substring(part.start, next))
 		} else if (part.type=='link') {
 			elem = document.createElement('a')
-			elem.textContent = part.value
-			elem.href = part.value
+			elem.textContent = part.value.display_url
+			elem.href = part.value.expanded_url
 		}
 		if (elem)
 			frag.appendChild(elem)
@@ -34,7 +34,7 @@ function draw_tweet(tweet) {
 }
 
 function draw_user(user) {
-	$profile_banner.src = user.profile_banner_url+"/1500x500"
+	$profile_banner.style.backgroundImage = `url(${user.profile_banner_url}/1500x500)`
 	$profile_picture.src = user.profile_image_url_https.replace('_normal', '')
 	$profile_name.textContent = user.name
 	$profile_username.textContent = "@"+user.screen_name
@@ -46,6 +46,9 @@ function draw_user(user) {
 	$profile_location.textContent = user.location
 	
 	$profile_joined.textContent = user.created_at
+	
+	$profile_follower_count.textContent = user.normal_followers_count
+	$profile_tweet_count.textContent = user.statuses_count
 }
 
 // profile banner
