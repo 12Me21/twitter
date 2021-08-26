@@ -4,8 +4,12 @@
 	"manifest_version": 2,
 	"version": "0",
 	"permissions": [
+		"cookies",
 		"https://twitter.com/*"
 	],
+	"background": [{
+		"scripts": ["background.js"]
+	}],
 	"content_scripts": [{
 		"matches": ["https://twitter.com/*"],
 		"run_at": "document_start",

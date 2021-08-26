@@ -3,16 +3,16 @@ window.onload = async function() {
 	document.cookie.split(';').forEach(function(c) {
 		document.cookie = c.trim().split('=')[0] + '=;' + 'expires=Thu, 01 Jan 1970 00:00:00 UTC;';
 	});
-	console.log("heck")
-	// 		
-	await init()
+	//
+	let auth = new Auth();
+	await auth.log_in()
 	var x = location.pathname.substr(1).split("/")
 	if (x[1]=='status') {
-		let data = await get_tweet(x[2])
+		let data = await auth.get_tweet(x[2])
 		let elem = draw_tweet(data)
 		$main.appendChild(elem)
 	} else {
-		let data = await get_user(x[0])
+		let data = await auth.get_profile(x[0])
 		console.log(data[1])
 		draw_user(data[0])
 		$profile_banner.hidden = false
@@ -27,4 +27,3 @@ window.onload = async function() {
 		draw_user(x)
 	})*/
 }
-
