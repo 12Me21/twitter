@@ -73,3 +73,7 @@ flex-col > *, flex-row > *, .flex-col > *, .flex-row > * {
 .align {
 	align-items: center;
 }
+
+[hidden] {
+	display: none !important;
+}

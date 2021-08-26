@@ -5,7 +5,7 @@ document.body.outerHTML = `
 <!--<div id=$sidebar></div>-->
 <div id=$main class='grow scroll-outer'>
 	<div class='scroll-inner'>
-		<flex-col id=$profile_banner>
+		<flex-col id=$profile_banner hidden>
 			<div class='grow'></div>
 			<flex-row class='over-image'>
 				<div id=$profile_picture_container><img id=$profile_picture class='fill'></div>
@@ -28,8 +28,8 @@ document.body.outerHTML = `
 				</flex-col>
 			</flex-row>
 		</flex-col>
+		<div id=$profile_tweets></div>
 	</div>
-</div>
 </div>
 </body>
 `

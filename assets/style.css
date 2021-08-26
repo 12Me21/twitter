@@ -1,5 +1,5 @@
 html {
-	font-family: roboto, sans-serif, twemoji;
+	font-family: roboto, sans-serif, twemoji, twitma;
 }
 
 #\$sidebar {
@@ -48,4 +48,46 @@ html {
 
 #\$profile_bio {
 	padding: .3rem;
+}
+
+.avatar {
+	border: 1px solid black;
+	aspect-ratio: 1/1;
+}
+
+.tweet-image {
+	max-width: 100%;
+	max-height: 20vh;
+	border: 1px solid gray;
+}
+
+.name {
+	font-weight: bold;	
+}
+
+.username {
+	font-family: monospace;
+}
+
+.tweet {
+	border: 1px solid red;
+}
+
+.tweet-contents {
+	padding: 0.5rem;
+	max-width: 5in;
+}
+
+.tweet-contents > * {
+	margin-top: 0.5rem;
+}
+
+.tweet-header > * {
+	padding: 0.2rem;
+}
+
+.tweet .avatar {
+	width: 73px;
+	height: 73px;
+	box-sizing: content-box;
 }

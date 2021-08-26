@@ -21,8 +21,8 @@ function graphql_url(type, params) {
 	return `https://twitter.com/i/api/graphql/${q.queryId}/${q.operationName}?variables=${encodeURIComponent(JSON.stringify(params))}`
 }
 
-async function get_user(name) {
-	let url = graphql_url('UserByScreenName',{screen_name: name, withSafetyModeUserFields: false, withSuperFollowsUserFields: false})
+async function get_graphql(type, params) {
+	let url = graphql_url(type, params)
 	let resp = await fetch(url, {
 		headers: {
 			Authorization: "Bearer "+bearer,
@@ -30,4 +30,41 @@ async function get_user(name) {
 		},
 	})
 	return await resp.json()
+}
+
+async function get_tweet(id) {
+	let data = await get_graphql('TweetDetail', {
+		focalTweetId: id,
+		with_rux_injections: false,
+		includePromotedContent: false,
+		withCommunity: false,
+		withTweetQuoteCount: true,
+		withBirdwatchNotes: false,
+		withSuperFollowsUserFields: false,
+		withUserResults: true,
+		withBirdwatchPivots: false,
+		withReactionsMetadata: false,
+		withReactionsPerspective: false,
+		withSuperFollowsTweetFields: false,
+		withVoice: false,
+	})
+	console.log(data)
+	data = data.data.threaded_conversation_with_injections.instructions[0].entries.find(x=>x.entryId==`tweet-${id}`).content.itemContent.tweet_results.result
+	return data
+}
+
+async function get_user(name) {
+	let r1 = await get_graphql('UserByScreenName',{
+		screen_name: name,
+		withSafetyModeUserFields: false,
+		withSuperFollowsUserFields: false
+	})
+	let user = r1.data.user.result
+	let r2 = await get_graphql('UserTweets', {"userId":user.rest_id,"count":20,"withTweetQuoteCount":true,"includePromotedContent":true,"withSuperFollowsUserFields":false,"withUserResults":true,"withBirdwatchPivots":false,"withReactionsMetadata":false,"withReactionsPerspective":false,"withSuperFollowsTweetFields":false,"withVoice":true})
+	console.log(r2)
+	let tweets = r2.data.user.result.timeline.timeline.instructions.find(x=>x.type=='TimelineAddEntries').entries
+	let pinned = r2.data.user.result.timeline.timeline.instructions.find(x=>x.type=='TimelinePinEntry')
+	if (pinned)
+		pinned = pinned.entry.content.itemContent.tweet_results.result
+	return [user.legacy, pinned, tweets.filter(x=>/^tweet-/.test(x.entryId)).map(x=>x.content.itemContent.tweet_results.result)]
 }
