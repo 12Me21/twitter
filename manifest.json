@@ -3,17 +3,19 @@
 	"description": "ligma",
 	"manifest_version": 2,
 	"version": "0",
+	
 	"permissions": [
-		"cookies",
+		"webRequest",
+		"webRequestBlocking",
 		"https://twitter.com/*"
 	],
-	"background": [{
-		"scripts": ["background.js"]
-	}],
 	"content_scripts": [{
 		"matches": ["https://twitter.com/*"],
 		"run_at": "document_start",
 		"js": ["inject.js"]
 	}],
-	"web_accessible_resources": ["assets/*"]
+	"web_accessible_resources": ["assets/*"],
+	"background": {
+		"scripts": ["no-cookies.js"]
+	}
 }

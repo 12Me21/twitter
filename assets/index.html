@@ -1,35 +1,57 @@
 // yeah this is actually a javascript file
 // I named it .html so the editor will indent and highlight it
-document.body.outerHTML = `
-<body class='flex-row'>
-<!--<div id=$sidebar></div>-->
-<div id=$main class='grow scroll-outer'>
-	<div class='scroll-inner'>
-		<flex-col id=$profile_banner hidden>
+document.body.innerHTML = `
+
+<div id=$main class='scroll-outer'>
+	<div class='scroll-inner' id=$main_scroll></div>
+</div>
+
+<template id=$Tweet>
+	<flex-row class='tweet' data-id=main>
+		<div><img class='avatar' data-id=avatar></div>
+		<flex-col class='grow'>
+			<flex-row class='tweet-header align flex-wrap things'>
+				<div class='pre name' data-id=name></div>
+				<div class='pre username' data-id=username></div>
+			</flex-row>
+			<div class='pre contents' data-id=contents></div>
+			<flex-row class='flex-wrap things'>
+				<div>💙<span data-id=likes></span></div>
+				<div>🔁<span data-id=retweets></span></div>
+				<div>R<span data-id=replies></span></div>
+			</flex-row>
+		</flex-col>
+	</flex-row>
+</template>
+
+<template id=$Profile>
+	<div data-id=main class='profile'>
+		<img data-id=banner class='banner'>
+		<flex-col>
 			<div class='grow'></div>
 			<flex-row class='over-image'>
-				<div id=$profile_picture_container><img id=$profile_picture class='fill'></div>
+				<div><img data-id=avatar class='avatar'></div>
 				<flex-col class='grow'>
-					<flex-row class='align'>
-						<div id=$profile_name class='pre'></div>
-						<div id=$profile_username class='pre'></div>
-						<div class='grow'></div>
+					<flex-row class='align flex-wrap things'>
+						<div data-id=name class='pre name'></div>
+						<div data-id=username class='pre username'></div>
 					</flex-row>
-					<flex-row class='grow'>
-						<div class='pre' id=$profile_bio></div>
-						<div class='grow'></div>
+					<div class='grow'>
+						<div class='pre contents' data-id=bio></div>
+					</div>
+					<flex-row class='flex-wrap things'>
+						<div>🔗<span data-id=website class='pre'></span></div>
+						<div>🌍<span data-id=location class='pre'></span></div>
+						<div>📅<time data-id=joined class='pre'></time></div>
 					</flex-row>
-					<div>
-						🔗<span id=$profile_website class='pre'></span> 🌍<span id=$profile_location class='pre'></span> 📅<time id=$profile_joined class='pre'></time>
-					</div>
-					<div>
-						followers: <span id=$profile_follower_count class='pre'></span> tweets: <span id=$profile_tweet_count class='pre'></span>
-					</div>
+					<flex-row class='flex-wrap things'>
+						<div>followers: <span data-id=follower_count class='pre'></span></div>
+						<div>tweets: <span data-id=tweet_count class='pre'></span></div>
+					</flex-row>
 				</flex-col>
 			</flex-row>
 		</flex-col>
-		<div id=$profile_tweets></div>
 	</div>
-</div>
-</body>
+</template>
+
 `

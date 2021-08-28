@@ -41,7 +41,11 @@ flex-col, .flex-col {
 }
 
 flex-col > *, flex-row > *, .flex-col > *, .flex-row > * {
-	flex-shrink: 0;
+	/*flex-shrink: 0;*/
+}
+
+.flex-wrap {
+	flex-wrap: wrap;
 }
 
 .grow {

@@ -15,7 +15,7 @@ class Auth {
 		let url = this.graphql_url(type, params)
 		return fetch(url, {
 			headers: {
-				Authorization: "Bearer "+this.bearer,
+				'Authorization': "Bearer "+this.bearer,
 				'x-guest-token': this.token,
 			}
 		}).then(x=>x.json()).then(x=>x.data)
@@ -81,18 +81,24 @@ class Auth {
 			localStorage.tw2secrets = JSON.stringify({bearer: this.bearer, querys: this.querys})
 		}
 	}
+	
 	async get_token() {
 		let j = localStorage.tw2token
-		if (j) {
+		if (0 && j) {
 			console.info("using cached token")
 			this.token = j
-		} else
+		} else {
 			console.info("fetching token")
-			await fetch("https://api.twitter.com/1.1/guest/activate.json", {method:"POST", headers: {authorization: "Bearer "+this.bearer}}).then(x=>x.json()).then(x=>{
+			await fetch(
+				"https://api.twitter.com/1.1/guest/activate.json",
+				{method: "POST", headers: {authorization: "Bearer "+this.bearer}}
+			).then(x=>x.json()).then(x=>{
 				this.token = x.guest_token
 				localStorage.tw2token = this.token
 			})
+		}
 	}
+	
 	async log_in() {
 		console.info("logging in...")
 		await this.get_secrets()
