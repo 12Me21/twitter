@@ -7,6 +7,16 @@ class Auth {
 		this.token = null
 	}
 	
+	get_cookies() {
+		let cookies = {}
+		for (let item of document.cookie.split(";")) {
+			let match = item.match(/^\s*([^]*?)="?([^]*?)"?\s*$/)
+			if (match)
+				cookies[match[1]] = decodeURIComponent(match[2])
+		}
+		return cookies
+	}
+	
 	graphql_url(type, params) {
 		let q = this.querys[type]
 		return `https://twitter.com/i/api/graphql/${q.queryId}/${q.operationName}?variables=${encodeURIComponent(JSON.stringify(params))}`
@@ -16,7 +26,8 @@ class Auth {
 		return fetch(url, {
 			headers: {
 				'Authorization': "Bearer "+this.bearer,
-				'x-guest-token': this.token,
+				'x-csrf-token': this.csrf_token,
+				//'x-guest-token': this.token,
 			}
 		}).then(x=>x.json()).then(x=>x.data)
 	}
@@ -101,7 +112,9 @@ class Auth {
 	
 	async log_in() {
 		console.info("logging in...")
+		let cookies = this.get_cookies()
+		this.csrf_token = cookies.ct0
 		await this.get_secrets()
-		await this.get_token()
+		//await this.get_token()
 	}
 }

@@ -78,6 +78,6 @@ flex-col > *, flex-row > *, .flex-col > *, .flex-row > * {
 	align-items: center;
 }
 
-[hidden] {
+template, [hidden] {
 	display: none !important;
 }

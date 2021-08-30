@@ -5,8 +5,10 @@
 	"version": "0",
 	
 	"permissions": [
+		"cookies",
 		"webRequest",
 		"webRequestBlocking",
+		"https://.twitter.com/*",
 		"https://twitter.com/*"
 	],
 	"content_scripts": [{

@@ -8,11 +8,11 @@ document.body.innerHTML = `
 
 <template id=$Tweet>
 	<flex-row class='tweet' data-id=main>
-		<div><img class='avatar' data-id=avatar></div>
+		<div><a data-id=avatar_link><img class='avatar' data-id=avatar></a></div>
 		<flex-col class='grow'>
 			<flex-row class='tweet-header align flex-wrap things'>
-				<div class='pre name' data-id=name></div>
-				<div class='pre username' data-id=username></div>
+				<a data-id=name_link><div class='pre name' data-id=name></div></a>
+				<a data-id=username_link><div class='pre username' data-id=username></div></a>
 			</flex-row>
 			<div class='pre contents' data-id=contents></div>
 			<flex-row class='flex-wrap things'>
