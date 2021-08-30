@@ -1,5 +1,3 @@
-let bearer, querys, token
-
 class Auth {
 	constructor() {
 		this.bearer = null
@@ -27,6 +25,7 @@ class Auth {
 			headers: {
 				'Authorization': "Bearer "+this.bearer,
 				'x-csrf-token': this.csrf_token,
+				'x-12-cookie': `_twitter_sess=${this.cookies._twitter_sess}; auth_token=${this.cookies.auth_token}; ct0=${this.cookies.ct0}`,
 				//'x-guest-token': this.token,
 			}
 		}).then(x=>x.json()).then(x=>x.data)
@@ -35,64 +34,54 @@ class Auth {
 	async get_tweet(id) {
 		let data = await this.get_graphql('TweetDetail', {
 			focalTweetId: id,
-			with_rux_injections: false,
-			withCommunity: false,
-			withBirdwatchNotes: false,
-			withTweetQuoteCount: true,
-			includePromotedContent: false,
-			withSuperFollowsUserFields: false,
-			withUserResults: true,
-			withBirdwatchPivots: false,
-			withReactionsMetadata: false,
-			withReactionsPerspective: false,
-			withSuperFollowsTweetFields: false,
-			withVoice: false,
+			// all of these fields are required and none of them are really important
+			with_rux_injections: false, withCommunity: false, withBirdwatchNotes: false, withTweetQuoteCount: true, includePromotedContent: false, withSuperFollowsUserFields: false, withUserResults: true, withBirdwatchPivots: false, withReactionsMetadata: false, withReactionsPerspective: false, withSuperFollowsTweetFields: false, withVoice: false,
 		})
-		data = data.threaded_conversation_with_injections.instructions[0].entries.find(x=>x.entryId==`tweet-${id}`).content.itemContent.tweet_results.result
+		if (!data.threaded_conversation_with_injections)
+			return null
+		data = data.threaded_conversation_with_injections.instructions[0].entries.find(x => x.entryId==`tweet-${id}`).content.itemContent.tweet_results.result
 		return data
 	}
 	
 	async get_user(name) {
 		let resp = await this.get_graphql('UserByScreenName', {
 			screen_name: name,
-			withSafetyModeUserFields: false,
-			withSuperFollowsUserFields: false,
+			withSafetyModeUserFields: false, withSuperFollowsUserFields: false,
 		})
-		return resp.user.result
+		if (resp.user)
+			return resp.user.result
+		else
+			return null
 	}
 	
-	async get_profile(name) {
-		let user = await this.get_user(name)
+	async get_profile(user_id) {
 		// yes all these fields are REQUIRED
-		let resp = await this.get_graphql('UserTweets', {userId:user.rest_id, count:20, withTweetQuoteCount:true,includePromotedContent:false,withSuperFollowsUserFields:false,withUserResults:true,withBirdwatchPivots:false,withReactionsMetadata:false,withReactionsPerspective:false,withSuperFollowsTweetFields:false,withVoice:true})
+		let resp = await this.get_graphql('UserTweets', {userId: user_id, count:20, withTweetQuoteCount:true,includePromotedContent:false,withSuperFollowsUserFields:false,withUserResults:true,withBirdwatchPivots:false,withReactionsMetadata:false,withReactionsPerspective:false,withSuperFollowsTweetFields:false,withVoice:true})
 		let instructions = resp.user.result.timeline.timeline.instructions
 		let tweets = instructions.find(x=>x.type=='TimelineAddEntries').entries
 		let pinned = instructions.find(x=>x.type=='TimelinePinEntry')
 		if (pinned)
 			pinned = pinned.entry.content.itemContent.tweet_results.result
-		return [user.legacy, pinned, tweets.filter(x=>/^tweet-/.test(x.entryId)).map(x=>x.content.itemContent.tweet_results.result)]
-	}
-	// auth stuff
-	async get_secrets() {
-		try {
-			let j = JSON.parse(localStorage.tw2secrets)
-			this.bearer = j.bearer
-			this.querys = j.querys
-			console.info("using cached secrets")
-		} catch {
-			console.info("fetching secrets")
-			// this is an awful hack. we need to extract some values from a js file without executing it
-			let text = await fetch("https://abs.twimg.com/responsive-web/client-web/main.91699ca5.js").then(x=>x.text())
-			this.bearer = text.match(/a="Web-12",s="(.*?)"/)[1]
-			this.querys = {}
-			text.match(/\{queryId:".*?",operationName:".*?",operationType:".*?"\}/g).forEach(x=>{
-				let d = JSON.parse(x.replace(/(\w+):/g,'"$1":'))
-				this.querys[d.operationName] = d
-			})
-			localStorage.tw2secrets = JSON.stringify({bearer: this.bearer, querys: this.querys})
-		}
+		return [pinned, tweets.filter(x=>/^tweet-/.test(x.entryId)).map(x=>x.content.itemContent.tweet_results.result)]
 	}
 	
+	////////////////////////////////
+	// Authentication/Login stuff //
+	////////////////////////////////
+	
+	// this downloads a javascript file and extracts some values from it
+	async get_secrets() {
+		console.info("fetching secrets")
+		// awful hack.
+		let text = await fetch("https://abs.twimg.com/responsive-web/client-web/main.91699ca5.js").then(x=>x.text())
+		this.bearer = text.match(/a="Web-12",s="(.*?)"/)[1]
+		this.querys = {}
+		text.match(/\{queryId:".*?",operationName:".*?",operationType:".*?"\}/g).forEach(x=>{
+			let d = JSON.parse(x.replace(/(\w+):/g,'"$1":'))
+			this.querys[d.operationName] = d
+		})
+	}
+	// get a guest token
 	async get_token() {
 		let j = localStorage.tw2token
 		if (0 && j) {
@@ -112,9 +101,17 @@ class Auth {
 	
 	async log_in() {
 		console.info("logging in...")
-		let cookies = this.get_cookies()
-		this.csrf_token = cookies.ct0
-		await this.get_secrets()
+		this.cookies = this.get_cookies()
+		this.csrf_token = this.cookies.ct0
+		try {
+			let j = JSON.parse(localStorage.tw2secrets)
+			this.bearer = j.bearer
+			this.querys = j.querys
+			console.info("using cached secrets")
+		} catch {
+			await this.get_secrets()
+			localStorage.tw2secrets = JSON.stringify({bearer: this.bearer, querys: this.querys})
+		}
 		//await this.get_token()
 	}
 }

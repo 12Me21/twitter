@@ -57,11 +57,14 @@ html {
 #\$main > .scroll-inner {
 	max-width: 6in;
 	margin: auto;
+	border-left: 1px solid gray;
+	border-right: 1px solid gray;
+	min-height: 100%;
 }
 
 .profile .banner {
 	width: 100%;
-	display: block;
+	aspect-ratio: 3/1;
 }
 
 .things > * {

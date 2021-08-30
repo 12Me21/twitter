@@ -32,6 +32,7 @@ function format_text(text, entities, ext) {
 			elem = document.createElement('a')
 			elem.textContent = value.expanded_url
 			elem.href = value.expanded_url
+			//make_link(elem, value.expanded_url)
 		} else if (type=='hashtags') {
 			elem = document.createElement('a')
 			elem.textContent = "#"+value.text
@@ -52,7 +53,7 @@ function format_text(text, entities, ext) {
 		} else if (type=='user_mentions') {
 			elem = document.createElement('a')
 			elem.textContent = "@"+value.screen_name
-			elem.href = "https://twitter.com/@"+value.screen_name
+			make_link(elem, "https://twitter.com/@"+value.screen_name)
 		} else if (type=='symbols') {
 			elem = document.createElement('a')
 			elem.textContent = value.text
@@ -88,63 +89,73 @@ function make_link(link, url) {
 
 // idea: maybe put like/rt/reply count under avtaar?
 function draw_tweet(data) {
-	if (data.legacy.retweeted_status_result) {
-		data = data.legacy.retweeted_status_result.result
-	}
-	let tweet = data.legacy
-	let user = data.core.user_results.result.legacy
-	let quoted = null
-	if (tweet.quoted_status_id_str) {
-		if (data.quoted_status_result && data.quoted_status_result.result)
-			quoted = draw_tweet(data.quoted_status_result.result)
-	}
-	
 	let ids = template($Tweet)
-	
-	
-	ids.avatar.src = user.profile_image_url_https.replace("_normal", "_bigger")
-	ids.avatar.width = 73
-	ids.avatar.height = 73
-	ids.name.textContent = user.name
-	ids.username.textContent = "@"+user.screen_name
-	
-	make_link(ids.avatar_link, "https://twitter.com/@"+user.screen_name)
-	make_link(ids.name_link, "https://twitter.com/@"+user.screen_name)
-	make_link(ids.username_link, "https://twitter.com/@"+user.screen_name)
-	
-	ids.contents.replaceChildren(format_text(tweet.full_text, tweet.entities, tweet.extended_entities))
-	ids.likes.textContent = tweet.favorite_count
-	ids.retweets.textContent = tweet.retweet_count
-	ids.replies.textContent = tweet.reply_count + tweet.quote_count
-	
-	if (quoted)
-		ids.contents.appendChild(quoted)
-	
-	return ids.main
+	try {
+		if (data.legacy.retweeted_status_result) {
+			data = data.legacy.retweeted_status_result.result
+		}
+		let tweet = data.legacy
+		let user = data.core.user_results.result.legacy
+		let quoted = null
+		if (tweet.quoted_status_id_str) {
+			if (data.quoted_status_result && data.quoted_status_result.result)
+				quoted = draw_tweet(data.quoted_status_result.result)
+		}
+		
+		ids.avatar.src = user.profile_image_url_https.replace("_normal", "_bigger")
+		ids.avatar.width = 73
+		ids.avatar.height = 73
+		ids.name.textContent = user.name
+		ids.username.textContent = "@"+user.screen_name
+		
+		make_link(ids.avatar_link, "https://twitter.com/@"+user.screen_name)
+		make_link(ids.name_link, "https://twitter.com/@"+user.screen_name)
+		make_link(ids.username_link, "https://twitter.com/@"+user.screen_name)
+		make_link(ids.tweet_link, "https://twitter.com/@"+user.screen_name+"/status/"+tweet.id_str)
+		
+		ids.contents.replaceChildren(format_text(tweet.full_text, tweet.entities, tweet.extended_entities))
+		ids.likes.textContent = tweet.favorite_count
+		ids.retweets.textContent = tweet.retweet_count
+		ids.replies.textContent = tweet.reply_count + tweet.quote_count
+		
+		if (quoted)
+			ids.contents.appendChild(quoted)
+		
+	} catch (e) {
+		console.log("error drawing tweet", e, tweet, user)
+	} finally {
+		return ids.main
+	}
 }
 
-function draw_user(user) {
-	let ids = template($Profile)
-	if (user.profile_banner_url) {
-		ids.banner.src = user.profile_banner_url+"/1500x500"
-		//ids.banner.width = 1500
-		//ids.banner.height = 500
+function draw_user(result) {
+	if (result && result.__typename=='User') {
+		let ids = template($Profile)
+		let user = result.legacy
+		
+		if (user.profile_banner_url) {
+			ids.banner.src = user.profile_banner_url+"/1500x500"
+		} else {
+			ids.banner.hidden = true
+		}
+		
+		ids.avatar.src = user.profile_image_url_https.replace('_normal', '')
+		ids.name.textContent = user.name
+		ids.username.textContent = "@"+user.screen_name
+		ids.bio.replaceChildren(format_text(user.description, user.entities.description))
+		ids.website.replaceChildren(format_text(user.url, user.entities.url))
+		ids.location.textContent = user.location
+		ids.joined.textContent = user.created_at
+		
+		ids.follower_count.textContent = user.normal_followers_count
+		ids.tweet_count.textContent = user.statuses_count
+		
+		return ids.main
+	} else if (result && result.__typename=='UserUnavailable') {
+		return document.createTextNode("user unavailalbe: "+result.reason)
 	} else {
-		ids.banner.hidden = true
+		return document.createTextNode("user ?? " + JSON.stringify(result))
 	}
-	
-	ids.avatar.src = user.profile_image_url_https.replace('_normal', '')
-	ids.name.textContent = user.name
-	ids.username.textContent = "@"+user.screen_name
-	ids.bio.replaceChildren(format_text(user.description, user.entities.description))
-	ids.website.replaceChildren(format_text(user.url, user.entities.url))
-	ids.location.textContent = user.location
-	ids.joined.textContent = user.created_at
-	
-	ids.follower_count.textContent = user.normal_followers_count
-	ids.tweet_count.textContent = user.statuses_count
-	
-	return ids.main
 }
 
 // profile banner
