@@ -29,12 +29,6 @@ function render_from_location() {
 	render(window.location)
 }
 
-async function do_render(first, second) {
-	let resp = await first()
-	
-	second(resp)
-}
-
 class View {
 	constructor(check_path, request, render) {
 		this.check_path = check_path
@@ -89,17 +83,17 @@ let views = [
 			}
 		}
 	),
-	// 404
-	new View(
-		url => true,
-		async function(url) {
-			return url
-		},
-		function (data) {
-			$main_scroll.append("unknown page :"+data)
-		}
-	)
 ]
+
+let unknown_view = new View(
+	url => true,
+	async function(url) {
+		return url
+	},
+	function (data) {
+		$main_scroll.append("unknown page :"+data)
+	}
+)
 
 let error_view = new View(
 	null,
@@ -113,25 +107,23 @@ async function render(url) {
 	console.log("beginning render of: "+url)
 	url = new URL(url)
 	url.path = url.pathname.substr(1).split("/")
-	let view = views.find(view => view.check_path(url))
-	if (view) {
-		let resp
-		try {
-			resp = await view.request(url)
-		} catch (e) {
-			console.error(e)
-			view = error_view
-			resp = view.request(e)
-		}
-		$main_scroll.replaceChildren()
-		$main_scroll.scrollTop = 0
-		try {
-			view.render(resp)
-		} catch (e) {
-			console.error(e)
-			view = error_view
-			resp = view.request(e)
-			view.render(resp)
-		}
+	let view = views.find(view => view.check_path(url)) || unknown_view
+	let resp
+	try {
+		resp = await view.request(url)
+	} catch (e) {
+		console.error(e)
+		view = error_view
+		resp = view.request(e)
+	}
+	$main_scroll.replaceChildren()
+	$main_scroll.scrollTop = 0
+	try {
+		view.render(resp)
+	} catch (e) {
+		console.error(e)
+		view = error_view
+		resp = view.request(e)
+		view.render(resp)
 	}
 }
