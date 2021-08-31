@@ -13,8 +13,11 @@ document.body.innerHTML = `
 			<flex-row class='tweet-header align flex-wrap things'>
 				<a data-id=name_link><div class='pre name' data-id=name></div></a>
 				<a data-id=username_link><div class='pre username' data-id=username></div></a>
+				<time data-id=time class='pre grow'></time>
 			</flex-row>
 			<div class='pre contents' data-id=contents></div>
+			<button data-id=translate_button>translate</button>
+			<div class='pre contents' data-id=translated_contents></div>
 			<flex-row class='flex-wrap things'>
 				<div>💙<span data-id=likes></span></div>
 				<div>🔁<span data-id=retweets></span></div>

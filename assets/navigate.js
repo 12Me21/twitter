@@ -9,7 +9,7 @@ async function onload() {
 	// so we only run this if that didn't happen
 	if (!initial_pop) {
 		initial_pop = true
-		render_from_location()
+		await render_from_location()
 	}
 }
 
@@ -43,6 +43,50 @@ class View {
 // - maybe user profile too?
 // - perhaps like, every time you navigate to a new thing, we create a new scroller, and store like, up to 3 at a time, so you can easily go back to the previous thing. sorta like tweetdeck
 
+// an 'item' is a single tweet, or other widget, that appears in the timeline
+function handle_item(item) {
+	let content = item.itemContent
+	let type = content.itemType
+	if (type=='TimelineTweet') {
+		$main_scroll.append(draw_tweet(content.tweet_results.result))
+	} else if (type=='TimelineTimelineCursor') {
+		$main_scroll.append("cursor item")
+	} else
+		$main_scroll.append("item: "+type)
+}
+
+// an 'entry' contains 0 or more 'items', usually grouped together
+function handle_entry(entry) {
+	let content = entry.content
+	let type = content.entryType
+	if (type=='TimelineTimelineItem') {
+		handle_item(content)
+	} else if (type=='TimelineTimelineModule') {
+		for (let item of content.items)
+			handle_item(item.item)
+	} else if (type=='TimelineTimelineCursor') {
+		$main_scroll.append("cursor entry"+JSON.stringify(content))
+	} else {
+		$main_scroll.append("entry: "+type)
+	}
+}
+
+// an 'instruction' contains 0 or more 'entries'
+function handle_instructions(insts) {
+	for (let inst of insts.instructions) {
+		console.log(inst)
+		let type = inst.type
+		if (type=='TimelineAddEntries') {
+			for (let entry of inst.entries)
+				handle_entry(entry)
+		} else if (type=='TimelinePinEntry') {
+			handle_entry(inst.entry)
+		} else {
+			$main_scroll.append("instruction: "+JSON.stringify(inst))
+		}
+	}
+}
+
 let views = [
 	// twitter.com/<name>/status/<id>
 	new View(
@@ -51,10 +95,8 @@ let views = [
 			return auth.get_tweet(url.path[2])
 		},
 		function(data) {
-			if (data) {
-				$main_scroll.appendChild(draw_tweet(data))
-			} else {
-				$main_scroll.append("tweet  no")
+			if (data && data.threaded_conversation_with_injections) {
+				handle_instructions(data.threaded_conversation_with_injections)
 			}
 		}
 	),
@@ -76,10 +118,7 @@ let views = [
 		function(data) {
 			$main_scroll.append(draw_user(data[0]))
 			if (data[1]) {
-				if (data[1][0])
-					$main_scroll.append(draw_tweet(data[1][0]))
-				for (let tweet of data[1][1])
-					$main_scroll.append(draw_tweet(tweet))
+				handle_instructions(data[1])
 			}
 		}
 	),

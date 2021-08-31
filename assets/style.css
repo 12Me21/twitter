@@ -78,3 +78,7 @@ a {
 a:hover {
 	text-decoration: underline;
 }
+
+.tweet time {
+	text-align: right;
+}

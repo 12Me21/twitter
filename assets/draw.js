@@ -87,6 +87,24 @@ function make_link(link, url) {
 	link.onclick = link_onclick
 }
 
+function format_date(date) {
+	var seconds = Math.floor((Date.now() - date.getTime()) / 1000)
+	var interval = Math.floor(seconds / 31536000)
+	if (interval >= 1) return interval + " years ago"
+	interval = Math.round(seconds / 2592000)
+	if (interval >= 1) return interval + " months ago"
+	interval = Math.round(seconds / 86400)
+	if (interval >= 1) return interval + " days ago"
+	interval = Math.round(seconds / 3600)
+	if (interval >= 1) return interval + " hours ago"
+	interval = Math.round(seconds / 60)
+	if (interval >= 1) return interval + " minutes ago"
+	return "Just now"
+	/*if (seconds <= -0.5)
+	  return " IN THE FUTURE?"
+	  return Math.round(seconds) + " seconds ago"*/
+}
+
 // idea: maybe put like/rt/reply count under avtaar?
 function draw_tweet(data) {
 	let ids = template($Tweet)
@@ -108,10 +126,18 @@ function draw_tweet(data) {
 		ids.name.textContent = user.name
 		ids.username.textContent = "@"+user.screen_name
 		
+		ids.time.textContent = format_date(new Date(tweet.created_at))
+		
 		make_link(ids.avatar_link, "https://twitter.com/@"+user.screen_name)
 		make_link(ids.name_link, "https://twitter.com/@"+user.screen_name)
 		make_link(ids.username_link, "https://twitter.com/@"+user.screen_name)
 		make_link(ids.tweet_link, "https://twitter.com/@"+user.screen_name+"/status/"+tweet.id_str)
+		
+		let tc = ids.translated_contents
+		ids.translate_button.onclick = async function() {
+			let json = await auth.translate_tweet(tweet.id_str)
+			tc.replaceChildren(format_text(json.translation, json.entities))
+		}
 		
 		ids.contents.replaceChildren(format_text(tweet.full_text, tweet.entities, tweet.extended_entities))
 		ids.likes.textContent = tweet.favorite_count
@@ -145,7 +171,7 @@ function draw_user(result) {
 		ids.bio.replaceChildren(format_text(user.description, user.entities.description))
 		ids.website.replaceChildren(format_text(user.url, user.entities.url))
 		ids.location.textContent = user.location
-		ids.joined.textContent = user.created_at
+		ids.joined.textContent = format_date(new Date(user.created_at))
 		
 		ids.follower_count.textContent = user.normal_followers_count
 		ids.tweet_count.textContent = user.statuses_count

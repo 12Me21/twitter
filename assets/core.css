@@ -48,6 +48,10 @@ flex-col > *, flex-row > *, .flex-col > *, .flex-row > * {
 	flex-wrap: wrap;
 }
 
+.flex-wrap > .grow {
+	flex-basis: auto;
+}
+
 .grow {
 	flex-grow: 1;
 	flex-shrink: 1;
