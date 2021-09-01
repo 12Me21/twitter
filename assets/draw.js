@@ -137,8 +137,7 @@ function draw_item(item, objects) {
 	if (objects) {
 		let content = item.content
 		if (content.tweet) {
-			console.log(content)
-			return draw_tweet(conv_tweet(content.tweet.id, objects))
+			return draw_tweet(content.tweet.id, objects)
 		} else if (content.notification) {
 			return draw_notification(objects.notifications[content.notification.id])
 		}
@@ -148,7 +147,9 @@ function draw_item(item, objects) {
 		let type = content.itemType
 		
 		if (type=='TimelineTweet') {
-			return draw_tweet(content.tweet_results.result)
+			let objects = {tweets:{}, users:{}}
+			let id = tweet_to_v2(content.tweet_results.result, objects)
+			return draw_tweet(id, objects)
 		} else if (type=='TimelineTimelineCursor') {
 			return draw_cursor(content)
 		} else {
@@ -194,51 +195,45 @@ function draw_entry(entry, objects) {
 	return elem
 }
 
-// convert the new data format to the old format
-// (temporary)
-function conv_tweet(id, objects) {
-	let tweet = objects.tweets[id]
-	let user = objects.users[tweet.user_id_str]
-	let quoted
-	let data = {
-		core: {
-			user_results: {
-				result: {
-					legacy: user
-				}
-			}
-		},
-		legacy: tweet,
+function tweet_to_v2(result, objects) {
+	objects.tweets[result.legacy.id_str] = result.legacy
+	if (result.legacy.retweeted_status_result) {
+		result.legacy.retweeted_status_id_str = tweet_to_v2(result.legacy.retweeted_status_result.result, objects)
+		delete result.legacy.retweeted_status_result
 	}
-	if (tweet.ext) {
-		data.reactionMetadata = tweet.ext.signalsReactionMetadata.r.ok
-		data.reactionPerspective = tweet.ext.signalsReactionPerspective.r.ok
+	let user = result.core.user_results.result
+	objects.users[user.rest_id] = user.legacy
+	result.legacy.ext = {
+		signalsReactionMetadata: { r: { ok:
+			result.reactionMetadata
+		}},
+		signalsReactionPerspective: { r: { ok:
+			result.reactionPerspective
+		}},
 	}
-	if (tweet.quoted_status_id_str)
-		data.quoted_status_result = {
-			result: conv_tweet(tweet.quoted_status_id_str, objects)
-		}
-	return data
+	if (result.quoted_status_result) {
+		tweet_to_v2(result.quoted_status_result.result, objects)
+	}
+	return result.legacy.id_str
 }
 
 // idea: maybe put like/rt/reply count under avtaar?
-function draw_tweet(data) {
+function draw_tweet(id, objects) {
 	let ids = template($Tweet)
 	try {
+		let tweet = objects.tweets[id]
 		let retweeted_by
-		if (data.legacy.retweeted_status_result) {
-			retweeted_by = data.core.user_results.result.legacy
-			data = data.legacy.retweeted_status_result.result
+		if (tweet.retweeted_status_id_str) {
+			retweeted_by = tweet
+			tweet = objects.tweets[tweet.retweeted_status_id_str]
 			ids.retweeted_by.textContent = "retweeted by"
 		} else {
 			ids.retweeted_by.remove()
 		}
-		let tweet = data.legacy
-		let user = data.core.user_results.result.legacy
+		let user = objects.users[tweet.user_id_str]
 		let quoted = null
 		if (tweet.quoted_status_id_str) {
-			if (data.quoted_status_result && data.quoted_status_result.result)
-				quoted = draw_tweet(data.quoted_status_result.result)
+			quoted = draw_tweet(tweet.quoted_status_id_str, objects)
 		}
 		ids.avatar.src = user.profile_image_url_https.replace("_normal", "_bigger")
 		ids.avatar.width = 73
@@ -264,8 +259,8 @@ function draw_tweet(data) {
 		ids.retweets.textContent = tweet.retweet_count
 		ids.replies.textContent = tweet.reply_count + tweet.quote_count
 		// todo: reactionPerspective tells us which reaction WE used
-		if (data.reactionMetadata) {
-			for (let react of data.reactionMetadata.reactionTypeMap) {
+		if (tweet.ext && tweet.ext.signalsReactionMetadata) {
+			for (let react of tweet.ext.signalsReactionMetadata.r.ok.reactionTypeMap) {
 				if (react.count) {
 					let elem = document.createElement('div')
 					elem.append(react.type+" "+react.count)

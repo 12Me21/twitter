@@ -187,6 +187,23 @@ class Auth {
 		})
 	}
 	
+	async get_user_likes(id) {
+		return this.get_graphql('Likes', {
+			userId: id,
+			count: 20,
+			//cursor: '',
+			withHighlightedLabel: true,
+			withReactionsMetadata: true,
+			withReactionsPerspective: true,
+			withSuperFollowsTweetFields: true,
+			withSuperFollowsUserFields: true,
+			withTweetQuoteCount: true,
+			includePromotedContent: false,
+			withUserResults: true,
+			withBirdwatchPivots: false,
+		})
+	}
+	
 	// note: for some reason this does NOT fill in the 'ext' field!
 	async get_notifications() {
 		return fetch("https://twitter.com/i/api/2/notifications/all.json"+encode_url_params({
