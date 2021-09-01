@@ -10,6 +10,7 @@ document.body.innerHTML = `
 	<flex-row class='tweet' data-id=main>
 		<div><a data-id=avatar_link><img class='avatar' data-id=avatar></a></div>
 		<flex-col class='grow'>
+			<flex-row data-id=retweeted_by class='align flex-wrap things'></flex-row>
 			<flex-row class='tweet-header align flex-wrap things'>
 				<a data-id=name_link><div class='pre name' data-id=name></div></a>
 				<a data-id=username_link><div class='pre username' data-id=username></div></a>
@@ -18,7 +19,7 @@ document.body.innerHTML = `
 			<div class='pre contents' data-id=contents></div>
 			<button data-id=translate_button>translate</button>
 			<div class='pre contents' data-id=translated_contents></div>
-			<flex-row class='flex-wrap things'>
+			<flex-row data-id=reactions class='flex-wrap things'>
 				<div>💙<span data-id=likes></span></div>
 				<div>🔁<span data-id=retweets></span></div>
 				<div>R<span data-id=replies></span></div>

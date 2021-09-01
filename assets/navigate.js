@@ -43,46 +43,26 @@ class View {
 // - maybe user profile too?
 // - perhaps like, every time you navigate to a new thing, we create a new scroller, and store like, up to 3 at a time, so you can easily go back to the previous thing. sorta like tweetdeck
 
-// an 'item' is a single tweet, or other widget, that appears in the timeline
-function handle_item(item) {
-	let content = item.itemContent
-	let type = content.itemType
-	if (type=='TimelineTweet') {
-		$main_scroll.append(draw_tweet(content.tweet_results.result))
-	} else if (type=='TimelineTimelineCursor') {
-		$main_scroll.append("cursor item")
-	} else
-		$main_scroll.append("item: "+type)
-}
-
-// an 'entry' contains 0 or more 'items', usually grouped together
-function handle_entry(entry) {
-	let content = entry.content
-	let type = content.entryType
-	if (type=='TimelineTimelineItem') {
-		handle_item(content)
-	} else if (type=='TimelineTimelineModule') {
-		for (let item of content.items)
-			handle_item(item.item)
-	} else if (type=='TimelineTimelineCursor') {
-		$main_scroll.append("cursor entry"+JSON.stringify(content))
-	} else {
-		$main_scroll.append("entry: "+type)
-	}
-}
-
 // an 'instruction' contains 0 or more 'entries'
-function handle_instructions(insts) {
+function handle_instructions(insts, objects) {
 	for (let inst of insts.instructions) {
-		console.log(inst)
-		let type = inst.type
-		if (type=='TimelineAddEntries') {
-			for (let entry of inst.entries)
-				handle_entry(entry)
-		} else if (type=='TimelinePinEntry') {
-			handle_entry(inst.entry)
+		if (objects) {
+			if (inst.addEntries) {
+				for (let entry of inst.addEntries.entries)
+					add_entry(entry, objects)
+			} else {
+				$main_scroll.append("instruction: "+JSON.stringify(inst))
+			}
 		} else {
-			$main_scroll.append("instruction: "+JSON.stringify(inst))
+			let type = inst.type
+			if (type=='TimelineAddEntries') {
+				for (let entry of inst.entries)
+					add_entry(entry)
+			} else if (type=='TimelinePinEntry') {
+				add_entry(inst.entry)
+			} else {
+				$main_scroll.append("instruction: "+JSON.stringify(inst))
+			}
 		}
 	}
 }
@@ -98,6 +78,26 @@ let views = [
 			if (data && data.threaded_conversation_with_injections) {
 				handle_instructions(data.threaded_conversation_with_injections)
 			}
+		}
+	),
+	// twitter.com/home
+	new View(
+		url => url.path.length==1 && url.path[0]=='home',
+		async function(url) {
+			return auth.get_home()
+		},
+		function(data) {
+			handle_instructions(data.timeline, data.globalObjects)
+		}
+	),
+	// twitter.com/notifications
+	new View(
+		url => url.path.length==1 && url.path[0]=='notifications',
+		async function(url) {
+			return auth.get_notifications()
+		},
+		function(data) {
+			handle_instructions(data.timeline, data.globalObjects)
 		}
 	),
 	// twitter.com/<name>
@@ -120,6 +120,16 @@ let views = [
 			if (data[1]) {
 				handle_instructions(data[1])
 			}
+		}
+	),
+	// twitter.com/i/bookmarks
+	new View(
+		url => url.path.length==2 && url.path[0]=='i' && url.path[1]=='bookmarks',
+		function(url) {
+			return auth.get_bookmarks()
+		},
+		function(data) {
+			handle_instructions(data)
 		}
 	),
 ]

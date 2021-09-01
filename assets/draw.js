@@ -7,8 +7,8 @@ function template(t) {
 	return ids
 }
 
-// todo: extended_entities (i.e. videos)
-function format_text(text, entities, ext) {
+// todo: use the display_text_range
+function format_text(text, entities, ext, range) {
 	let frag = document.createDocumentFragment()
 	if (typeof text != 'string')
 		return frag
@@ -105,12 +105,133 @@ function format_date(date) {
 	  return Math.round(seconds) + " seconds ago"*/
 }
 
+// todo: reverse the search I guess, since most items get inserted at the bottom
+function add_entry(entry, objects) {
+	if (/promotedTweet-/y.test(entry.entryId))
+		return
+	let elem = draw_entry(entry, objects)
+	let after = null
+	for (let child of $main_scroll.children) {
+		if (child.dataset.order < elem.dataset.order) {
+			after = child
+			break
+		}
+	}
+	$main_scroll.insertBefore(elem, after)
+}
+
+function draw_cursor(cursor) {
+	let elem = document.createElement('div')
+	elem.textContent = JSON.stringify(cursor)
+	return elem
+}
+
+function draw_notification(notif) {
+	let elem = document.createElement('div')
+	elem.textContent = notif.message.text
+	return elem
+}
+
+// an 'item' is a single tweet, or other widget, that appears in the timeline
+function draw_item(item, objects) {
+	if (objects) {
+		let content = item.content
+		if (content.tweet) {
+			console.log(content)
+			return draw_tweet(conv_tweet(content.tweet.id, objects))
+		} else if (content.notification) {
+			return draw_notification(objects.notifications[content.notification.id])
+		}
+		return document.createTextNode("item: "+JSON.stringify(content))
+	} else {
+		let content = item.itemContent
+		let type = content.itemType
+		
+		if (type=='TimelineTweet') {
+			return draw_tweet(content.tweet_results.result)
+		} else if (type=='TimelineTimelineCursor') {
+			return draw_cursor(content)
+		} else {
+			return document.createTextNode("item: "+type)
+		}
+	}
+}
+
+// an 'entry' contains 0 or more 'items', grouped together
+function draw_entry(entry, objects) {
+	let elem = document.createElement('div')
+	elem.className = "entry"
+	elem.dataset.order = entry.sortIndex
+	let content = entry.content
+	
+	if (objects) { //new format
+		if (content.timelineModule) {
+			for (let item of content.timelineModule.items)
+				elem.append(draw_item(item.item, objects))
+		} else if (content.item) {
+			elem.append(draw_item(content.item, objects))
+		} else if (content.operation) {
+			if (content.operation.cursor) {
+				elem.append(draw_cursor(content.operation.cursor))
+			} else
+				elem.textContent = "entry "+JSON.stringify(content)
+		} else {
+			elem.textContent = "entry "+JSON.stringify(content)
+		}
+	} else { //old format
+		let type = content.entryType
+		if (type=='TimelineTimelineItem') {
+			elem.append(draw_item(content))
+		} else if (type=='TimelineTimelineModule') {
+			for (let item of content.items)
+				elem.append(draw_item(item.item))
+		} else if (type=='TimelineTimelineCursor') {
+			elem.textContent = "cursor entry "+JSON.stringify(content)
+		} else {
+			elem.textContent = "entry "+JSON.stringify(content)
+		}
+	}
+	return elem
+}
+
+// convert the new data format to the old format
+// (temporary)
+function conv_tweet(id, objects) {
+	let tweet = objects.tweets[id]
+	let user = objects.users[tweet.user_id_str]
+	let quoted
+	let data = {
+		core: {
+			user_results: {
+				result: {
+					legacy: user
+				}
+			}
+		},
+		legacy: tweet,
+	}
+	if (tweet.ext) {
+		data.reactionMetadata = tweet.ext.signalsReactionMetadata.r.ok
+		data.reactionPerspective = tweet.ext.signalsReactionPerspective.r.ok
+	}
+	if (tweet.quoted_status_id_str)
+		data.quoted_status_result = {
+			result: conv_tweet(tweet.quoted_status_id_str, objects)
+		}
+	return data
+}
+
 // idea: maybe put like/rt/reply count under avtaar?
 function draw_tweet(data) {
 	let ids = template($Tweet)
 	try {
+		let retweeted_by
 		if (data.legacy.retweeted_status_result) {
+			retweeted_by = data.core.user_results.result.legacy
 			data = data.legacy.retweeted_status_result.result
+			ids.retweeted_by.textContent = "retweeted by"
+		} else {
+			ids.retweeted_by.remove()
 		}
 		let tweet = data.legacy
 		let user = data.core.user_results.result.legacy
@@ -119,7 +240,6 @@ function draw_tweet(data) {
 			if (data.quoted_status_result && data.quoted_status_result.result)
 				quoted = draw_tweet(data.quoted_status_result.result)
 		}
-		
 		ids.avatar.src = user.profile_image_url_https.replace("_normal", "_bigger")
 		ids.avatar.width = 73
 		ids.avatar.height = 73
@@ -139,10 +259,20 @@ function draw_tweet(data) {
 			tc.replaceChildren(format_text(json.translation, json.entities))
 		}
 		
-		ids.contents.replaceChildren(format_text(tweet.full_text, tweet.entities, tweet.extended_entities))
+		ids.contents.replaceChildren(format_text(tweet.full_text, tweet.entities, tweet.extended_entities, tweet.display_text_range))
 		ids.likes.textContent = tweet.favorite_count
 		ids.retweets.textContent = tweet.retweet_count
 		ids.replies.textContent = tweet.reply_count + tweet.quote_count
+		// todo: reactionPerspective tells us which reaction WE used
+		if (data.reactionMetadata) {
+			for (let react of data.reactionMetadata.reactionTypeMap) {
+				if (react.count) {
+					let elem = document.createElement('div')
+					elem.append(react.type+" "+react.count)
+					ids.reactions.append(elem)
+				}
+			}
+		}
 		
 		if (quoted)
 			ids.contents.appendChild(quoted)
