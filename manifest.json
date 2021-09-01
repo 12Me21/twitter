@@ -14,7 +14,8 @@
 	"content_scripts": [{
 		"matches": ["https://twitter.com/*"],
 		"run_at": "document_start",
-		"js": ["inject.js"]
+		"js": ["inject.js"],
+		"css": ["inject.css"]
 	}],
 	"web_accessible_resources": ["assets/*"],
 	"background": {
