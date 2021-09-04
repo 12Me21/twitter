@@ -1,6 +1,9 @@
 function template(t) {
-	let ids = {}
-	t.content.cloneNode(true).querySelectorAll("[data-id]").forEach(x=>{
+	let frag = t.content.cloneNode(true)
+	let ids = {
+		$: frag
+	}
+	frag.querySelectorAll("[data-id]").forEach(x=>{
 		ids[x.dataset.id] = x
 		delete x.dataset.id
 	})
@@ -25,9 +28,9 @@ function format_text(text, entities, ext, range) {
 	parts.sort((a,b) => a.start-b.start)
 	text = [...text] // this splits the string by CODEPOINT unlike .substring which uses utf-16 characters
 	for (let i=0; i<parts.length; i++) {
-		let part = parts[i];
-		let elem;
-		let {type, value} = part;
+		let part = parts[i]
+		let elem
+		let {type, value} = part
 		if (type=='urls') {
 			elem = document.createElement('a')
 			elem.textContent = value.expanded_url
@@ -75,11 +78,14 @@ function format_text(text, entities, ext, range) {
 	return frag
 }
 
-function link_onclick(e) {
-	e.preventDefault()
-	let url = this.href
+function go_to(url) {
 	history.pushState(null, "", url)
 	render(url)
+}
+
+function link_onclick(e) {
+	e.preventDefault()
+	go_to(this.href)
 }
 
 function make_link(link, url) {
@@ -147,6 +153,7 @@ function draw_item(item, objects) {
 		let type = content.itemType
 		
 		if (type=='TimelineTweet') {
+			let result = content.tweet_results.result
 			let objects = {tweets:{}, users:{}}
 			let id = tweet_to_v2(content.tweet_results.result, objects)
 			return draw_tweet(id, objects)
@@ -196,90 +203,127 @@ function draw_entry(entry, objects) {
 }
 
 function tweet_to_v2(result, objects) {
+	if (!result) // this can happen when a user's pinned tweet has been deleted
+		return null
 	objects.tweets[result.legacy.id_str] = result.legacy
 	if (result.legacy.retweeted_status_result) {
 		result.legacy.retweeted_status_id_str = tweet_to_v2(result.legacy.retweeted_status_result.result, objects)
 		delete result.legacy.retweeted_status_result
 	}
-	let user = result.core.user_results.result
-	objects.users[user.rest_id] = user.legacy
 	result.legacy.ext = {
-		signalsReactionMetadata: { r: { ok:
-			result.reactionMetadata
-		}},
-		signalsReactionPerspective: { r: { ok:
-			result.reactionPerspective
+		signalsReactionMetadata: { r: { ok: {
+			reactionTypeMap: result.reactionMetadata.reactionTypeMap.map(x=>[x.type,x.count])
+		}}},
+		signalsReactionPerspective: { r: {
+			ok: result.reactionPerspective
 		}},
 	}
+	let user = result.core.user_results.result
+	objects.users[user.rest_id] = user.legacy
 	if (result.quoted_status_result) {
 		tweet_to_v2(result.quoted_status_result.result, objects)
 	}
 	return result.legacy.id_str
 }
 
+function draw_names(user) {
+	let ids = template($Usernames)
+	ids.name.textContent = user.name
+	ids.username.textContent = "@"+user.screen_name
+	let profile = "https://twitter.com/@"+user.screen_name
+	make_link(ids.name_link, profile)
+	make_link(ids.username_link, profile)
+	return ids.$
+}
+
+function draw_reaction(icon, count, pressed) {
+	let r = template($ReactButton)
+	r.icon.textContent = icon
+	if (count>0)
+		r.count.textContent = count
+	if (pressed)
+		r.main.className += ' own-reaction'
+	return r.main	
+}
+
 // idea: maybe put like/rt/reply count under avtaar?
 function draw_tweet(id, objects) {
-	let ids = template($Tweet)
 	try {
 		let tweet = objects.tweets[id]
-		let retweeted_by
+		if (!tweet) {
+			return template($MissingTweet).main
+		}
+		let ids = template($Tweet)
+		
+		// if this is a retweet, replace it with the original tweet and add a note
 		if (tweet.retweeted_status_id_str) {
-			retweeted_by = tweet
+			let retweeter = objects.users[tweet.user_id_str]
 			tweet = objects.tweets[tweet.retweeted_status_id_str]
-			ids.retweeted_by.textContent = "retweeted by"
+			ids.retweeted_by.append("Retweeted by ")
+			ids.retweeted_by.append(draw_names(retweeter))
 		} else {
 			ids.retweeted_by.remove()
 		}
+		
 		let user = objects.users[tweet.user_id_str]
-		let quoted = null
-		if (tweet.quoted_status_id_str) {
-			quoted = draw_tweet(tweet.quoted_status_id_str, objects)
-		}
-		ids.avatar.src = user.profile_image_url_https.replace("_normal", "_bigger")
-		ids.avatar.width = 73
-		ids.avatar.height = 73
-		ids.name.textContent = user.name
-		ids.username.textContent = "@"+user.screen_name
 		
 		ids.time.textContent = format_date(new Date(tweet.created_at))
-		
+		// user stuff
+		let username = "missingno" // fallback
+		username = user.screen_name
+		ids.avatar.src = user.profile_image_url_https.replace("_normal", "_bigger")
 		make_link(ids.avatar_link, "https://twitter.com/@"+user.screen_name)
-		make_link(ids.name_link, "https://twitter.com/@"+user.screen_name)
-		make_link(ids.username_link, "https://twitter.com/@"+user.screen_name)
-		make_link(ids.tweet_link, "https://twitter.com/@"+user.screen_name+"/status/"+tweet.id_str)
+		ids.user_names.replaceWith(draw_names(user))
 		
-		let tc = ids.translated_contents
+		make_link(ids.tweet_link, `https://twitter.com/@${username}/status/${tweet.id_str}`)
+		
+		// [translate] button
+		/*let tc = ids.translated_contents
 		ids.translate_button.onclick = async function() {
 			let json = await auth.translate_tweet(tweet.id_str)
 			tc.replaceChildren(format_text(json.translation, json.entities))
-		}
+		}*/
 		
 		ids.contents.replaceChildren(format_text(tweet.full_text, tweet.entities, tweet.extended_entities, tweet.display_text_range))
+		// if this is a quote retweet, render the quoted tweet
+		if (tweet.quoted_status_id_str) {
+			ids.contents.appendChild(draw_tweet(tweet.quoted_status_id_str, objects))
+		}
+		// regular interaction counts
 		ids.likes.textContent = tweet.favorite_count
-		ids.retweets.textContent = tweet.retweet_count
-		ids.replies.textContent = tweet.reply_count + tweet.quote_count
-		// todo: reactionPerspective tells us which reaction WE used
+		let x = document.createDocumentFragment()
+		x.append(draw_reaction("🔁", tweet.retweet_count))
+		x.append(draw_reaction("qrt", tweet.quote_count))
+		x.append(draw_reaction("reply", tweet.reply_count))
+		
+		// draw reactions (secret)
 		if (tweet.ext && tweet.ext.signalsReactionMetadata) {
-			for (let react of tweet.ext.signalsReactionMetadata.r.ok.reactionTypeMap) {
-				if (react.count) {
-					let elem = document.createElement('div')
-					elem.append(react.type+" "+react.count)
-					ids.reactions.append(elem)
+			if (!auth.guest) {
+				let mine = tweet.ext.signalsReactionPerspective.r.ok.reactionType
+				for (let react of tweet.ext.signalsReactionMetadata.r.ok.reactionTypeMap) {
+					let icon = {
+						Cheer: "🎉",
+						Like: "👍",
+						Sad: "😢",
+						Haha: "(lol)", // can't find a decent icon that stands out. these probably need to be color coded so it's easier to tell the faces apart.
+						Hmm: "🤔"
+					}[react[0]]
+					x.append(draw_reaction(icon, react[1], react[0]==mine))
 				}
 			}
 		}
+		ids.reactions.replaceWith(x)
+		// todo: gear icon should display a list of like
+		// pin, bookmark, delete, etc.
 		
-		if (quoted)
-			ids.contents.appendChild(quoted)
-		
-	} catch (e) {
-		console.log("error drawing tweet", e, tweet, user)
-	} finally {
 		return ids.main
+	} catch (e) {
+		console.error("error drawing tweet", e)
+		return template($MissingTweet).main
 	}
 }
 
-function draw_user(result) {
+function draw_profile(result) {
 	if (result && result.__typename=='User') {
 		let ids = template($Profile)
 		let user = result.legacy
@@ -291,10 +335,9 @@ function draw_user(result) {
 		}
 		
 		ids.avatar.src = user.profile_image_url_https.replace('_normal', '')
-		ids.name.textContent = user.name
-		ids.username.textContent = "@"+user.screen_name
-		ids.bio.replaceChildren(format_text(user.description, user.entities.description))
-		ids.website.replaceChildren(format_text(user.url, user.entities.url))
+		ids.names.replaceWith(draw_names(user))
+		ids.bio.append(format_text(user.description, user.entities.description))
+		ids.website.append(format_text(user.url, user.entities.url))
 		ids.location.textContent = user.location
 		ids.joined.textContent = format_date(new Date(user.created_at))
 		

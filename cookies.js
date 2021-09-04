@@ -29,8 +29,8 @@ chrome.cookies.getAll({url: "https://twitter.com"}, function(cookies){
 chrome.webRequest.onBeforeSendHeaders.addListener(
 	details => {
 		return {requestHeaders: details.requestHeaders.filter(x => {
-			// remove `cookie` header set by the browser
-			if (/^cookie$/i.test(x.name))
+			// remove the `cookie` header set by the browser
+			if (x.name.toLowerCase()=='cookie')
 				return false
 			// change the `x-12-cookie` header to `cookie` (to allow setting cookies manually with js)
 			if (x.name=='x-12-cookie')
@@ -45,13 +45,25 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 // intercept responses
 chrome.webRequest.onHeadersReceived.addListener(
 	details => {
-		for (header of details.responseHeaders) {
-			// change `set-cookie` header to `x-12-set-cookie` so we can view it from js, without it having any effect
-			if (/^set-cookie$/i.test(header.name))
-				header.name = 'x-12-set-cookie'
-		}
+		let headers = details.responseHeaders.filter(header=>{
+			// remove all `set-cookie` headers, except: 'ct0', '_twitter_sess', 'auth_token'
+			// (these are required for logging in)
+			if (header.name.toLowerCase()=='set-cookie') {
+				if (!/(ct0|_twitter_sess|auth_token)=/y.test(header.value)) {
+					return false
+				}
+				// remove the HttpOnly option from these headers
+				// todo: maybe add a prefix or otherwise hide these somehow?
+				// or put them in localstorage instead, idk
+				console.log("keeping cookie header", header)
+				header.value = header.value.replace("; HTTPOnly", "")
+			} else if (header.name=='content-security-policy') {
+				return false
+			}
+			return true
+		})
 		
-		return {responseHeaders: details.responseHeaders}
+		return {responseHeaders: headers}
 	},
 	{urls: ['https://*.twitter.com/*']},
 	['blocking', 'responseHeaders', 'extraHeaders'],

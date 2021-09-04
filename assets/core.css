@@ -85,3 +85,11 @@ flex-col > *, flex-row > *, .flex-col > *, .flex-row > * {
 template, [hidden] {
 	display: none !important;
 }
+
+button {
+	font-family: inherit;
+}
+
+.right-align {
+	text-align: right;
+}

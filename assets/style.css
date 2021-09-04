@@ -79,6 +79,10 @@ a:hover {
 	text-decoration: underline;
 }
 
-.tweet time {
-	text-align: right;
+.reaction.own-reaction {
+	background-color: lightblue;
+}
+
+.reaction {
+	padding: 0.1rem;
 }

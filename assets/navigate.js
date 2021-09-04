@@ -3,8 +3,8 @@ let initial_pop;
 
 // called when the page loads
 async function onload() {
-	auth = new Auth();
-	await auth.log_in()
+	auth = new Query();
+	await auth.init()
 	// some browsers trigger `popstate` when the page loads, and some don't
 	// so we only run this if that didn't happen
 	if (!initial_pop) {
@@ -86,6 +86,21 @@ function handle_instructions(insts, objects) {
 }
 
 let views = [
+	new View(
+		['compose','tweet'],
+		function(url) {
+			return
+		}, 
+		function(data) {
+			let ids = template($TweetComposer)
+			$main_scroll.append(ids.main)
+			ids.send.onclick = async function() {
+				let resp = await auth.create_tweet(ids.textarea.value)
+				console.log('create tweet:', resp)
+				go_to("https://twitter.com/heck/status/"+resp.create_tweet.tweet_results.result.rest_id)
+			}
+		}
+	),
 	// twitter.com/<name>/status/<id>
 	new View(
 		[true, 'status', /^\d+$/],
@@ -134,7 +149,7 @@ let views = [
 			}
 		},
 		function(data) {
-			$main_scroll.append(draw_user(data[0]))
+			$main_scroll.append(draw_profile(data[0]))
 			if (data[1]) {
 				handle_instructions(data[1])
 			}
@@ -166,7 +181,7 @@ let views = [
 			}
 		},
 		function(data) {
-			$main_scroll.append(draw_user(data[0]))
+			$main_scroll.append(draw_profile(data[0]))
 			if (data[1])
 				handle_instructions(data[1])
 		}
@@ -197,7 +212,7 @@ async function render(url) {
 	url.path = url.pathname.substr(1).split("/")
 	let view = views.find(view => view.check_path(url)) || unknown_view
 	let resp
-	console.log("view:",view.path)
+	console.log("view:", view.path)
 	try {
 		resp = await view.request(url)
 	} catch (e) {
