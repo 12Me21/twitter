@@ -2,9 +2,45 @@
 // I named it .html so the editor will indent and highlight it
 document.body.innerHTML = `
 
-<div id=$main class='scroll-outer'>
-	<div class='scroll-inner' id=$main_scroll></div>
-</div>
+<time-line id=$main_scroll></time-line>
+
+<box-where-i-hide-the-template-elements hidden>
+	
+	<template id=$List>
+		<tl-list data-id=main class='Row'>
+			<L-><div data-id=icon class='list-icon'></div></L->
+			<L- class='Col grow'>
+				<a data-id=title></a>
+				<L- data-id=names class='Row align flex-wrap things'></L->
+			</L->
+		</tl-list>
+	</template>
+	
+<template id=$SearchBox>
+	<div data-id=main>
+		<input data-id=input>
+		<button data-id=submit>Search</button>
+	</div>
+</template>
+
+<template id=$TimelineUser>
+	<tl-user data-id=main class='Row'>
+		<a data-id=avatar_link><img class='avatar' data-id=avatar width=73 height=73></a>
+		<L- class='Col'>
+			<L- class='Row align flex-wrap things'>
+				<br data-id=names>
+			</L->
+			<L- class='pre contents' data-id=bio></L->
+		</L->
+	</tl-user>
+</template>
+
+<template id=$MediaPicture>
+	<div data-id=main class='Col'>
+		<img data-id=image class='grow'>
+		<a data-id=link>Download</a>
+	</div>
+</template>
 
 <template id=$TweetComposer>
 	<div data-id=main>
@@ -14,7 +50,7 @@ document.body.innerHTML = `
 </template>
 
 <template id=$MissingTweet>
-	<div data-id=main class='tweet'>Missing tweet?</div>
+	<tl-tweet data-id=main>Missing tweet?</tl-tweet>
 </template>
 
 <template id=$ReactButton>
@@ -25,64 +61,74 @@ document.body.innerHTML = `
 </template>
 
 <template id=$Usernames>
-	<a data-id=name_link><div class='pre name' data-id=name></div></a>
-	<a data-id=username_link><div class='pre username' data-id=username></div></a>
+	<a data-id=name_link><L- class='pre name' data-id=name></L-></a>
+	<a data-id=username_link><L- class='pre username' data-id=username></L-></a>
+</template>
+
+<template id=$LoginForm>
+	<form data-id=main method=dialog>
+		<input placeholder=Username name=username autocomplete=username><br>
+		<input placeholder=Password name=password type=password autocomplete=current-password><br>
+		<button>Log In</button><br>
+		<output name=output></output>
+	</form>
 </template>
 
 <template id=$Tweet>
-	<flex-col class='tweet' data-id=main>
-		<flex-row data-id=retweeted_by class='align flex-wrap things'></flex-row>
-		<flex-row>
-			<flex-col>
+	<tl-tweet data-id=main class='Col'>
+		<L- data-id=note class='Row align flex-wrap things'></L->
+		<L- class='Row'>
+			<L- data-id=reply_label></L->
+			<L- class='Col'>
 				<a data-id=avatar_link><img class='avatar' data-id=avatar width=73 height=73></a>
-				<a data-id=tweet_link><div>goto</div></a>
-			</flex-col>
-			<flex-col class='grow'>
-				<flex-row class='tweet-header align flex-wrap things'>
+				<a data-id=tweet_link><L->goto</L-></a>
+			</L->
+			<L- class='Col grow'>
+				<L- class='Row tweet-header align flex-wrap things'>
 					<br data-id=user_names>
 					<time data-id=time class='pre grow right-align'></time>
-				</flex-row>
-				<div class='pre contents' data-id=contents></div>
+				</L->
+				<div class='contents' data-id=contents></div>
 				<!--<button data-id=translate_button>translate</button>
-				<div class='pre contents' data-id=translated_contents></div>-->
-				<flex-row class='flex-wrap things align'>
-					<div>💙<span data-id=likes></span></div>
+					  <div class='pre contents' data-id=translated_contents></div>-->
+				<L- class='Row flex-wrap things align'>
 					<br data-id=reactions>
-					<div class='grow'></div>
-					<div class='right-align'>⚙</div>
-				</flex-row>
-			</flex-col>
-		</flex-row>
-	</flex-col>
+					<L- class='grow'></L->
+					<L- class='right-align'>⚙</L->
+				</L->
+			</L->
+		</L->
+	</tl-tweet>
 </template>
 
 <template id=$Profile>
-	<div data-id=main class='profile'>
+	<tl-profile data-id=main>
 		<img data-id=banner class='banner'>
-		<flex-col>
-			<div class='grow'></div>
-			<flex-row class='over-image'>
-				<div><img data-id=avatar class='avatar'></div>
-				<flex-col class='grow'>
-					<flex-row class='align flex-wrap things'>
+		<L- class='Col'>
+			<L- class='grow'></L->
+			<L- class='Row over-image'>
+				<L-><img data-id=avatar class='avatar'></L->
+				<L- class='Col grow'>
+					<L- class='Row align flex-wrap things'>
 						<br data-id=names>
-					</flex-row>
-					<div class='grow'>
-						<div class='pre contents' data-id=bio></div>
-					</div>
-					<flex-row class='flex-wrap things'>
-						<div>🔗<span data-id=website class='pre'></span></div>
-						<div>🌍<span data-id=location class='pre'></span></div>
-						<div>📅<time data-id=joined class='pre'></time></div>
-					</flex-row>
-					<flex-row class='flex-wrap things'>
-						<div>followers: <span data-id=follower_count class='pre'></span></div>
-						<div>tweets: <span data-id=tweet_count class='pre'></span></div>
-					</flex-row>
-				</flex-col>
-			</flex-row>
-		</flex-col>
-	</div>
+					</L->
+					<L- class='grow'>
+						<L- class='pre contents' data-id=bio></L->
+					</L->
+					<L- class='Row flex-wrap things'>
+						<L->🔗<span data-id=website class='pre'></span></L->
+						<L->🌍<span data-id=location class='pre'></span></L->
+						<L->📅<time data-id=joined class='pre'></time></L->
+					</L->
+					<L- class='Row flex-wrap things'>
+						<L->followers: <span data-id=follower_count class='pre'></span></L->
+						<L->tweets: <span data-id=tweet_count class='pre'></span></L->
+					</L->
+				</L->
+			</L->
+		</L->
+		<L- data-id=bar>.</L->
+	</tl-profile>
 </template>
 
 `

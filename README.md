@@ -10,7 +10,7 @@ I'll add firefox support eventually (extensions are mostly the same but there ar
 
 NOTE: I haven't implemented logging in yet (it's complicated... I need to work around some trickery with http redirects and cookies)  
 (You can still browse the site as a guest)  
-
+n
 
 This is /mostly/ a normal website, but due to limitations of javascript, it needs a browser extension
 
@@ -25,3 +25,19 @@ The extension basically does 3 things:
 
 
 P.S. if anyone knows a way for an extension to remove <link> preloads so those warnings go away, PLEASE tell me   aaaaaaa  
+
+
+## Questions:
+
+"does this project have a name?"
+ no
+
+"will I get banned from twitter for using this"
+ probably not
+
+"does this violate the twitter TOS?"
+ I haven't read it
+
+"will this hijack my twitter account?"
+ why are you asking me this?
+

@@ -9,13 +9,18 @@
 		"webRequest",
 		"webRequestBlocking",
 		"https://.twitter.com/*",
-		"https://twitter.com/*"
+		"https://twitter.com/*",
+		"https://upload.twitter.com/*"
 	],
 	"content_scripts": [{
 		"matches": ["https://twitter.com/*"],
+		"exclude_matches": [
+			"https://twitter.com/account/login_challenge?*",
+			"https://twitter.com/login/error?*"
+		],
 		"run_at": "document_start",
-		"js": ["inject.js"],
-		"css": ["inject.css"]
+		"css": ["inject.css"],
+		"js": ["inject.js"]
 	}],
 	"web_accessible_resources": ["assets/*"],
 	"background": {

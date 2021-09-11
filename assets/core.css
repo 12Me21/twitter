@@ -5,6 +5,11 @@
 
 html {
 	position: fixed;
+	overflow: hidden;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
 	margin: 0;
 	
 	font-variant-ligatures: none;
@@ -12,35 +17,20 @@ html {
 	overflow-wrap: anywhere; /*break-word;*/
 }
 
-body {
-	position: fixed;
-	overflow: hidden;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	margin: 0;
-}
-
-
 * {
 	vertical-align: top;	
 }
 
-{
-	
-}
-
-flex-row, .flex-row {
+.Row {
 	display: flex;
 	flex-direction: row;
 }
-flex-col, .flex-col {
+.Col {
 	display: flex;
 	flex-direction: column;
 }
 
-flex-col > *, flex-row > *, .flex-col > *, .flex-row > * {
+.Col > *, .Row > * {
 	/*flex-shrink: 0;*/
 }
 
@@ -62,7 +52,7 @@ flex-col > *, flex-row > *, .flex-col > *, .flex-row > * {
 	flex-shrink: 1;
 }
 
-.scroll-outer {
+body {
 	height: 100%;
 	overflow-y: scroll;
 }
@@ -92,4 +82,8 @@ button {
 
 .right-align {
 	text-align: right;
+}
+
+L- {
+	display: block;
 }
