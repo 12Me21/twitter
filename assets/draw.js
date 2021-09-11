@@ -322,12 +322,46 @@ function tweet_to_v2(result, objects) {
 	}
 	if (result.card) {
 		result.legacy.card = result.card.legacy
+		let map = {}
+		for (x of result.card.legacy.binding_values) {
+			map[x.key] = x.value
+		}
+		result.legacy.card.binding_values = map
 	}
 	
 	let user = result.core.user_results.result
 	objects.users[user.rest_id] = user.legacy
 
 	return result.legacy.id_str
+}
+
+function draw_card(card) {
+	console.log(card)
+	if (/^poll\d+choice_text_only$/.test(card.name)) {
+		let ids = template($Poll)
+		let choices = Number(card.name.match(/^poll(\d+)choice_text_only$/)[1])
+		let options = []
+		let total = 0
+		for (let i=0; i<choices; i++) {
+			options[i] = [
+				card.binding_values[`choice${i+1}_label`].string_value,
+				Number(card.binding_values[`choice${i+1}_count`].string_value)
+			]
+			total += options[i][1]
+		}
+		for (let [label, count] of options) {
+			let ids2 = template($PollChoice)
+			ids2.count.textContent = count
+			ids2.label.textContent = label
+			ids2.visual.style.width = (count/total*100)+"%"
+			ids.main.append(ids2.main)
+		}
+		return ids.main
+	} else {
+		let x = document.createElement('div')
+		x.textContent = JSON.stringify(card)
+		return x
+	}
 }
 
 function draw_names(user) {
@@ -439,6 +473,11 @@ function draw_tweet(id, objects) {
 		ids.reactions.replaceWith(x)
 		// todo: gear icon should display a list of like
 		// pin, bookmark, delete, etc.
+		
+		if (tweet.card) {
+			let card = draw_card(tweet.card)
+			ids.contents.append(card)
+		}
 		
 		return ids.main
 	} catch (e) {

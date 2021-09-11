@@ -36,10 +36,25 @@ document.body.innerHTML = `
 </template>
 
 <template id=$MediaPicture>
-	<div data-id=main class='Col'>
+	<media-image data-id=main class='Col'>
 		<img data-id=image class='grow'>
 		<a data-id=link>Download</a>
-	</div>
+	</media-image>
+</template>
+
+<template id=$Poll>
+	<tweet-poll data-id=main class='Col'>
+	</tweet-poll>
+</template>
+
+<template id=$PollChoice>
+	<poll-option data-id=main class='Row align things'>
+		<div class='grow poll-bar-container'>
+			<div data-id=visual class='poll-bar'></div>
+			<div data-id=label></div>
+		</div>
+		<span data-id=count></span>
+	</poll-option>
 </template>
 
 <template id=$TweetComposer>
@@ -88,7 +103,7 @@ document.body.innerHTML = `
 					<br data-id=user_names>
 					<time data-id=time class='pre grow right-align'></time>
 				</L->
-				<div class='contents' data-id=contents></div>
+				<tweet-contents class='contents' data-id=contents></tweet-contents>
 				<!--<button data-id=translate_button>translate</button>
 					  <div class='pre contents' data-id=translated_contents></div>-->
 				<L- class='Row flex-wrap things align'>

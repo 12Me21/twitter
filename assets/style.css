@@ -120,3 +120,23 @@ tl-list .list-icon {
 	white-space: pre-wrap;
 	border: 3px outset green; /* place your writings on the pedistal*/
 }
+
+.poll-bar-container {
+	position: relative;
+}
+
+.poll-bar {
+	background-color: #8F9;
+	position: absolute;
+	z-index: -10;
+	height: 100%;
+}
+
+tweet-poll {
+	display: block;
+	border: 1px solid black;
+}
+
+poll-option {
+
+}

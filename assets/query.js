@@ -26,11 +26,10 @@ class Query {
 		return fetch("https://twitter.com/i/api/1.1/"+url, {
 			method: 'POST',
 			headers: {
-				'Content-Type': "application/x-www-form-urlencoded",
 				...this.auth.auth_headers(),
 				...extra_headers,
 			},
-			body: encode_url_params(body, true),
+			body: new URLSearchParams(body),
 			signal: this.signal,
 		}).then(x=>x.json())
 	}

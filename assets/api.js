@@ -1,10 +1,6 @@
-function encode_url_params(params, no_q) {
-	let items = []
-	for (let key in params) {
-		items.push(encodeURIComponent(key)+'='+encodeURIComponent(params[key]))
-	}
-	let str = items.join("&")
-	if (str.length && !no_q)
+function encode_url_params(params) {
+	let str = new URLSearchParams(params).toString()
+	if (str)
 		str = "?"+str
 	return str
 }
@@ -59,16 +55,15 @@ class Auth {
 		let x = await fetch('https://twitter.com/sessions', {
 			method: 'POST',
 			headers: {
-				'Content-Type': "application/x-www-form-urlencoded",
 				'x-12-cookie': "_mb_tk=see_my_balls"
 			},
-			body: encode_url_params({
+			body: new URLSearchParams({
 				remember_me: 1,
 				redirect_after_login: "/",
 				authenticity_token: "see_my_balls",
 				'session[username_or_email]': username,
 				'session[password]': password,
-			}, true),
+			}),
 		})
 		this.cookies = this.read_cookies()
 		if (x.url=="https://twitter.com/") {
