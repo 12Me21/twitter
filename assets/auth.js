@@ -11,6 +11,7 @@ class Auth {
 	cookies = {}
 	guest = null
 	guest_token = null
+	csrf_token = "00000000000000000000000000000000" // what a crazy number to generate randomly!
 	constructor() {
 	}
 	
@@ -65,7 +66,7 @@ class Auth {
 				'session[password]': password,
 			}),
 		})
-		this.cookies = this.read_cookies()
+		this.read_cookies()
 		if (x.url=="https://twitter.com/") {
 			return [true, null]
 		}
@@ -74,24 +75,24 @@ class Auth {
 	
 	async login_verify(formdata, response) {
 		formdata.set('challenge_response', response)
-		let query = new URLSearchParams(formdata).toString()
+		//let query = .toString()
 		let resp = await fetch("https://twitter.com/account/login_verification", {
 			method: 'POST',
 			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
-				'x-12-cookie': `_twitter_sess=${this.cookies._twitter_sess}; ct0=${this.cookies.ct0}; att=${this.cookies.att}`,
+				//'Content-Type': 'application/x-www-form-urlencoded',
+				'x-12-cookie': `_twitter_sess=${this.cookies._twitter_sess}; ct0=${this.csrf_token}; att=${this.cookies.att}`,
 			},
-			body: query,
+			body: new URLSearchParams(formdata),
 		})
 		if (resp.url=="https://twitter.com/") {
-			this.cookies = this.read_cookies()
+			this.read_cookies()
 			return true
 		}
 	}
 	
 	async init() {
 		await this.get_secrets()
-		this.cookies = this.read_cookies()
+		this.read_cookies()
 		if (this.cookies.auth_token) {
 			this.guest = false
 		} else {
@@ -107,8 +108,7 @@ class Auth {
 			if (match)
 				cookies[match[1]] = decodeURIComponent(match[2])
 		}
-		cookies.ct0 = "00000000000000000000000000000000" // what a crazy number to generate randomly
-		return cookies
+		this.cookies = cookies
 	}
 	
 	auth_headers() {
@@ -123,9 +123,9 @@ class Auth {
 				// it's extracted from: https://abs.twimg.com/responsive-web/client-web/main.91699ca5.js
 				'Authorization': "Bearer "+this.bearer,
 				// `x-csrf-token` must match the `ct0` cookie
-				'x-csrf-token': this.cookies.ct0,
+				'x-csrf-token': this.csrf_token,
 				// this header will be turned into a real cookie header by the browser extension
-				'x-12-cookie': `_twitter_sess=${this.cookies._twitter_sess}; auth_token=${this.cookies.auth_token}; ct0=${this.cookies.ct0}`,
+				'x-12-cookie': `_twitter_sess=${this.cookies._twitter_sess}; auth_token=${this.cookies.auth_token}; ct0=${this.csrf_token}`,
 			}
 		}
 	}

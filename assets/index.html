@@ -35,6 +35,16 @@ document.body.innerHTML = `
 	</tl-user>
 </template>
 
+<template id=$SummaryCard>
+	<summary-card class='Col' data-id=main>
+		<b data-id=title></b>
+		<div class='Row grow'>
+			<img data-id=image></img>
+			<div data-id=desc class='grow'></div>
+		</div>
+	</summary-card>
+</template>
+
 <template id=$MediaPicture>
 	<media-image data-id=main class='Col'>
 		<img data-id=image class='grow'>
@@ -89,6 +99,15 @@ document.body.innerHTML = `
 	</form>
 </template>
 
+<template id=$Unknown>
+	<tl-unknown data-id=main>
+		<details>
+			<summary data-id=label class='pre'></summary>
+			<div data-id=data class='pre'></div>
+		</details>
+	</tl-unknown>
+</template>
+
 <template id=$Tweet>
 	<tl-tweet data-id=main class='Col'>
 		<L- data-id=note class='Row align flex-wrap things'></L->
@@ -104,8 +123,9 @@ document.body.innerHTML = `
 					<time data-id=time class='pre grow right-align'></time>
 				</L->
 				<tweet-contents class='contents' data-id=contents></tweet-contents>
-				<!--<button data-id=translate_button>translate</button>
-					  <div class='pre contents' data-id=translated_contents></div>-->
+				<button data-id=translate_button>translate</button>
+				<div class='pre contents' data-id=translated_contents></div>
+				
 				<L- class='Row flex-wrap things align'>
 					<br data-id=reactions>
 					<L- class='grow'></L->

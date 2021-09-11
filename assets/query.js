@@ -94,17 +94,50 @@ class Query {
 		})
 	}
 	
+	create_retweet(id) {
+		return this.post_graphql('CreateRetweet', {
+			tweet_id: id,
+			dark_request: false,
+		})
+	}
+	
+	delete_retweet(id) {
+		return this.post_graphql('DeleteRetweet', {
+			source_tweet_id: id,
+			dark_request: false,
+		})
+	}
+	
+	// get list of 'friends' that are following a user
+	friends_following(id) {
+		return this.get_v11('friends/following/list.json', {
+			include_profile_interstitial_type:1,
+			include_blocking:1,
+			include_blocked_by:1,
+			include_followed_by:1,
+			include_want_retweets:1,
+			include_mute_edge:1,
+			include_can_dm:1,
+			include_can_media_tag:1,
+			skip_status:1,
+			cursor:-1,
+			user_id:id,
+			count:3,
+			with_total_count:true,
+		})
+	}
+	
 	// note: to react to a retweet, the reaction should be created on the retweet, not the original tweet
 	// it will be redirected to the original, but this allows the retweeter to get a notification about you liking their retweet etc.
-	async create_reaction(id, type) {
-		return await this.post_graphql('CreateTweetReaction', {
+	create_reaction(id, type) {
+		return this.post_graphql('CreateTweetReaction', {
 			tweet_id: id,
 			reaction_type: type,
 		})
 	}
 	
-	async get_user_followers(id, cursor) {
-		return await this.get_graphql('Followers', {
+	get_user_followers(id, cursor) {
+		return this.get_graphql('Followers', {
 			userId: id,
 			count: 20,
 			cursor: cursor,
@@ -112,8 +145,8 @@ class Query {
 		})
 	}
 	
-	async get_user_following(id, cursor) {
-		return await this.get_graphql('Following', {
+	get_user_following(id, cursor) {
+		return this.get_graphql('Following', {
 			userId: id,
 			count: 20,
 			cursor: cursor,
@@ -121,8 +154,8 @@ class Query {
 		})
 	}
 	
-	async pin_tweet(id) {
-		return await this.post_v11("account/pin_tweet.json", {
+	pin_tweet(id) {
+		return this.post_v11("account/pin_tweet.json", {
 			id: id,
 			tweet_mode: 'extended',
 		})
@@ -378,14 +411,13 @@ class Query {
 	async log_out() {
 		let resp = await this.post_v11('account/logout.json', {}).then(x=>x.json())
 		if (resp.status=='ok') {
-			//this.cookies = this.read_cookies()
 			return true
 		}
 	}
 	
 	async update_profile_background(blob, tile) {
 		let b64 = await new Promise(resolve => {
-			let reader = new FileReader();
+			let reader = new FileReader()
 			reader.onload = function() {
 				let str = reader.result
 				let start = str.indexOf(',')
@@ -527,4 +559,18 @@ class Query {
 		})
 	}
 	
+	// this is normally the first significant request when you load the page.
+	// it contains important info like your username, language, etc.
+	account_settings() {
+		return this.get_v11('account/settings.json', {
+			include_mention_filter: true,
+			include_nsfw_user_flag: true,
+			include_nsfw_admin_flag: true,
+			include_ranked_timeline: true,
+			include_alt_text_compose: true,
+			ext: 'ssoConnections',
+			include_country_code: true,
+			include_ext_dm_nsfw_media_filter: true,
+		})
+	}
 }

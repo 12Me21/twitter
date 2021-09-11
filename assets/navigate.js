@@ -1,10 +1,10 @@
-let auth;
-let current;
-let initial_pop;
+let auth
+let current
+let initial_pop
 
 // called when the page loads
 async function onload() {
-	auth = new Auth();
+	auth = new Auth()
 	await auth.init()
 	// some browsers trigger `popstate` when the page loads, and some don't
 	// so we only run this if that didn't happen
@@ -14,15 +14,16 @@ async function onload() {
 	}
 }
 
-/*document.addEventListener('click', function(e) {
+document.addEventListener('click', function(e) {
 	for (let elem of e.path) {
-		if (elem instanceof HTMLAnchorElement && elem.origin==window.location.origin) {
+		if (elem instanceof HTMLAnchorElement && elem.origin==window.location.origin && !elem.download) {
 			e.preventDefault()
-			console.log("handle navigation to:", elem.href)
-			break;
+			//console.log("handle navigation to:", elem.href)
+			go_to(elem.href)
+			break
 		}
 	}
-})*/
+}, false)
 
 function go_to(url) {
 	history.pushState(null, "", url)
@@ -115,6 +116,22 @@ function timeline_add(elem) {
 }
 
 let views = [
+	// todo: log in screen to add new account
+	new View(
+		['account', 'add'],
+		null,
+		function() {
+			
+		}
+	),
+	// todo: screen to select between accounts
+	new View(
+		['account', 'switch'],
+		null,
+		function() {
+			
+		}
+	),
 	new View(
 		[true, 'lists'],
 		async (url) => {

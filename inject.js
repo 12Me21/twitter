@@ -22,7 +22,7 @@ for (let file of ['core.css', 'style.css']) {
 	document.head.appendChild(elem)
 }
 
-for (let file of ['index.html', 'api.js', 'query.js', 'draw.js', 'navigate.js', 'twitter-text.js', 'editable.js']) {
+for (let file of ['index.html', 'auth.js', 'query.js', 'draw.js', 'navigate.js', /*'twitter-text.js', 'editable.js'*/]) {
 	let elem = document.createElement('script')
 	elem.src = url(file)
 	document.head.appendChild(elem)

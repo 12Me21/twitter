@@ -7,10 +7,7 @@ I'll add firefox support eventually (extensions are mostly the same but there ar
 - makes requests directly to the twitter API (no increased latency from a proxy server)
 - uses the same secret internal API as the official site
 - automatically overrides all pages at https://twitter.com/...
-
-NOTE: I haven't implemented logging in yet (it's complicated... I need to work around some trickery with http redirects and cookies)  
-(You can still browse the site as a guest)  
-n
+- uses the same session cookies so you don't have to log in/out when enabling/disabling the extension
 
 This is /mostly/ a normal website, but due to limitations of javascript, it needs a browser extension
 
@@ -36,7 +33,7 @@ P.S. if anyone knows a way for an extension to remove <link> preloads so those w
  probably not
 
 "does this violate the twitter TOS?"
- I haven't read it
+ haven't read it
 
 "will this hijack my twitter account?"
  why are you asking me this?

@@ -19,14 +19,27 @@ media-box {
 	border: 1px solid gray;
 }
 
-media-box > div {
+summary-card {
+	height: 8rem;
+	border: 1px solid gray;
+}
+
+summary-card > div {
+	height: 0;
+}
+
+summary-card > div > img {
+	object-fit: contain;
+}
+
+media-box > * {
 	flex-basis: 0;
 	flex-grow: 1;
 	height: 100%;
 	display: flex;
 }
 
-media-box > div > img {
+media-box > media-image > img {
 	height: 0;
 	object-fit: contain;
 }

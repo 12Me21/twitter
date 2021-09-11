@@ -1,11 +1,11 @@
 // this file gives us total control over cookies, from javascript.
 
-// modify/remove existing cookies
+// when the extension is first enabled, we remove/modify the existing twitter cookies
 chrome.cookies.getAll({url: "https://twitter.com"}, function(cookies){
 	console.log(cookies)
 	for (let cookie of cookies) {
 		// disable the httpOnly flag of these cookies, so we can read them from js
-		if (cookie.name=='ct0' || cookie.name=='_twitter_sess' || cookie.name=='auth_token') {
+		if (cookie.name=='_twitter_sess' || cookie.name=='auth_token') {
 			chrome.cookies.set({
 				domain: cookie.domain,
 				expirationDate: cookie.expirationDate,
@@ -25,7 +25,9 @@ chrome.cookies.getAll({url: "https://twitter.com"}, function(cookies){
 	}
 })
 
-// intercept requests
+////////////////////////
+// intercept requests //
+////////////////////////
 chrome.webRequest.onBeforeSendHeaders.addListener(
 	details => {
 		if (details.method=='OPTIONS')
@@ -44,18 +46,20 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 	['blocking', 'requestHeaders', 'extraHeaders'],
 )
 
-// intercept responses
+/////////////////////////
+// intercept responses //
+/////////////////////////
 chrome.webRequest.onHeadersReceived.addListener(
 	details => {
 		let headers = details.responseHeaders.filter(header=>{
-			// remove all `set-cookie` headers, except: 'ct0', '_twitter_sess', 'auth_token'
-			// (these are required for logging in)
+			// we need to modify this cors header due to a bug with extensions
 			if (header.name.toLowerCase()=='access-control-allow-headers') {
 				header.value = "*"
 			} else if (header.name.toLowerCase()=='set-cookie') {
-				if (!/(ct0|_twitter_sess|auth_token|att)=/y.test(header.value)) {
+				// remove all `set-cookie` headers, except: '_twitter_sess', 'auth_token', 'att' (att is used for 2fa)
+			// (these are required for logging in)
+				if (!/(_twitter_sess|auth_token|att)=/y.test(header.value))
 					return false
-				}
 				// remove the HttpOnly option from these headers
 				// todo: maybe add a prefix or otherwise hide these somehow?
 				// or put them in localstorage instead, idk
@@ -64,6 +68,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 				// and have a request header that tells the extension to insert them in requests
 				header.value = header.value.replace("; HTTPOnly", "")
 			} else if (header.name=='content-security-policy') {
+				// this header is annoying: remove it too
 				return false
 			}
 			return true
@@ -74,15 +79,3 @@ chrome.webRequest.onHeadersReceived.addListener(
 	{urls: ['https://*.twitter.com/*']},
 	['blocking', 'responseHeaders', 'extraHeaders'],
 )
-
-
-/*chrome.webRequest.onBeforeRequest.addListener(
-	function(details) {
-		if (details.type=='main_frame') {
-			console.log("blocked main_frame request:", details)
-			//return {cancel: true}
-		}
-	},
-	{urls: ["https://twitter.com/*", "https://abs.twimg.com/*"]},
-	["blocking"],
-)*/
