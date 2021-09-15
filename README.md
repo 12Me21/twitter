@@ -1,7 +1,10 @@
 (WIP replacement for the official twitter client, implemented as a browser extension)
 
-**currently works in Edge (and probably chrome)**
-I'll add firefox support eventually (extensions are mostly the same but there are some slight compatibility differences)
+## Installation
+
+- install this folder as a browser extension (currently supports **Edge and Chrome** (I'll add firefox support eventually (extensions are mostly the same but there are some slight compatibility differences)))
+
+## untitled section
 
 - runs entirely in a web browser (no server required)
 - makes requests directly to the twitter API (no increased latency from a proxy server)
@@ -38,3 +41,7 @@ P.S. if anyone knows a way for an extension to remove <link> preloads so those w
 "will this hijack my twitter account?"
  why are you asking me this?
 
+
+## Notes (2)
+
+- supports logging in (including 2 factor authentication)

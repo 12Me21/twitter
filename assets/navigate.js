@@ -150,23 +150,6 @@ let views = [
 		}
 	),
 	new View(
-		['account', 'login_verification'],
-		(url) => current.get_verify_form(url.search),
-		function(formdata) {
-			let x = document.createElement('input')
-			let y = document.createElement('button')
-			y.textContent = 'submit'
-			timeline_add(x)
-			timeline_add(y)
-			y.onclick = async function(e) {
-				if (await auth.login_verify(formdata, x.value)) {
-					e.target.output.value = "Logged in!"
-					go_to("https://twitter.com/home")
-				}
-			}
-		}
-	),
-	new View(
 		['search'],
 		async (url) => {
 			let params = new URLSearchParams(url.search)
@@ -198,16 +181,25 @@ let views = [
 		null,
 		function(data) {
 			let ids = template($LoginForm)
+			let output = ids.output
 			ids.main.onsubmit = async function(e) {
 				e.preventDefault()
 				let username = e.target.username.value
 				let password = e.target.password.value
-				let [status, error] = await auth.log_in(username, password)
-				if (status) {
-					e.target.output.value = "Logged in!"
+				let [status, ext] = await auth.log_in(username, password)
+				if (status=='ok') {
+					ids.output.textContent = "Logged in!"
 					go_to("https://twitter.com/home")
+				} else if (status=='2fa') {
+					ids.extra.hidden = false
+					ids.code_submit.onclick = async function(e) {
+						if (await auth.login_verify(ext, ids.code.value)) {
+							ids.output.textContent = "Logged in!"
+							go_to("https://twitter.com/home")
+						}
+					}
 				} else {
-					e.target.output.textContent = "Login failed. You may need to visit the following page: "
+					ids.output.textContent = "Login failed. You may need to visit the following page: "
 					let a = document.createElement('a')
 					a.href = error
 					a.textContent = error
@@ -221,7 +213,11 @@ let views = [
 		['compose','tweet'],
 		null,
 		function(data) {
+			let editable = new Editable({browserSpellcheck: false})
+			
 			let ids = template($TweetComposer)
+			editable.add(ids.textarea)
+			
 			timeline_add(ids.main)
 			ids.send.onclick = async function() {
 				let resp = await current.create_tweet(ids.textarea.value)
@@ -242,7 +238,7 @@ let views = [
 	// twitter.com/home
 	new View(
 		['home'],
-		(url) => current.get_home(),
+		(url) => current.get_home(url.searchParams.get('cursor')),
 		function(data) {
 			handle_instructions(data.timeline, data.globalObjects)
 		}
@@ -339,6 +335,7 @@ let error_view = new View(
 
 async function render(url) {
 	console.log("beginning render of: "+url)
+	document.documentElement.classList.add('f-loading')
 	// parse the url path
 	url = new URL(url)
 	url.path = url.pathname.substr(1).split("/")
@@ -386,4 +383,5 @@ async function render(url) {
 		resp = view.request(e)
 		view.render(resp)
 	}
+	document.documentElement.classList.remove('f-loading')
 }

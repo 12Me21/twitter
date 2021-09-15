@@ -79,3 +79,6 @@ chrome.webRequest.onHeadersReceived.addListener(
 	{urls: ['https://*.twitter.com/*']},
 	['blocking', 'responseHeaders', 'extraHeaders'],
 )
+
+// todo: we need to find a better method to completely block the real twitter html from loading.
+// this file is extremely dangerous and greatly increases loading times etc.

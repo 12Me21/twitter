@@ -67,19 +67,28 @@ class Auth {
 			}),
 		})
 		this.read_cookies()
-		if (x.url=="https://twitter.com/") {
-			return [true, null]
+		let url = new URL(x.url)
+		if (url.pathname=='/') {
+			// normal login success
+			return ['ok']
+		} else if (url.pathname=='/account/login_verification') {
+			// (two factor authentication)
+			// finish downloading the page and extract the form:
+			let html = await x.text()
+			let doc = new DOMParser().parseFromString(html, 'text/html')
+			let form = doc.getElementById('login-verification-form')
+			return ['2fa', new FormData(form)]
+		} else {
+			return ['unknown', x.url]
 		}
-		return [false, x.url]
 	}
 	
+	// 2fa
 	async login_verify(formdata, response) {
 		formdata.set('challenge_response', response)
-		//let query = .toString()
-		let resp = await fetch("https://twitter.com/account/login_verification", {
+		let resp = await fetch('https://twitter.com/account/login_verification', {
 			method: 'POST',
 			headers: {
-				//'Content-Type': 'application/x-www-form-urlencoded',
 				'x-12-cookie': `_twitter_sess=${this.cookies._twitter_sess}; ct0=${this.csrf_token}; att=${this.cookies.att}`,
 			},
 			body: new URLSearchParams(formdata),

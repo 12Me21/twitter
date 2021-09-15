@@ -43,6 +43,7 @@
 				parts.push({start:item.indices[1]})
 			}
 		}
+		
 		parts.sort((a,b) => a.start-b.start)
 		text = [...text] // this splits the string by CODEPOINT unlike .substring which uses utf-16 characters
 		let media = []
@@ -53,8 +54,9 @@
 			if (type=='urls') {
 				elem = document.createElement('a')
 				elem.className = 'pre'
-				elem.href = value.expanded_url
-				elem.textContent = value.expanded_url.replace(/^https?:\/\//, "")
+				let url = String(value.expanded_url ?? value.url)
+				elem.href = url
+				elem.textContent = url.replace(/^https?:\/\//, "")
 				//make_link(elem, value.expanded_url)
 			} else if (type=='hashtags') {
 				elem = draw_link(search_url("#"+value.text), "#"+value.text)
@@ -119,6 +121,11 @@
 		},0)
 	}
 	
+	function image_onclick(e) {
+		$gallery_image.src = e.target.src
+		$image_viewer.hidden = false
+	}
+	
 	function draw_image(media, name) {
 		let url = media.media_url_https
 		let {'1': base, '2': ext} = url.match(/^(.*)\.(.*?)$/)
@@ -130,6 +137,7 @@
 		ids.link.onclick = download_link_onclick
 		let col = media.ext_media_color.palette[0].rgb
 		ids.image.style.backgroundColor = `rgb(${col.red},${col.green},${col.blue})`
+		ids.image.onclick = image_onclick
 		return ids.main
 	}
 	
@@ -370,7 +378,8 @@
 		} else if (card.name=='player') {
 			let ids = template($SummaryCard)
 			ids.title.textContent = card.binding_values.title.string_value
-			ids.desc.textContent = card.binding_values.description.string_value
+			if (card.binding_values.description)
+				ids.desc.textContent = card.binding_values.description.string_value
 			ids.image.src = card.binding_values.player_image.image_value.url // todo
 			return ids.main
 		} else {

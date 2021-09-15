@@ -324,7 +324,7 @@ class Query {
 		})
 	}
 	
-	async get_home() {
+	async get_home(cursor) {
 		return await this.get_v2('timeline/home_latest.json', {
 			include_profile_interstitial_type: 1,
 			include_blocking: 1,
@@ -349,10 +349,11 @@ class Query {
 			simple_quoted_tweet: true,
 			earned: 1,
 			count: 20,
+			...cursor && {cursor: cursor},
 			ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo",
 		})
 	}
-	
+	//HBaEgKPBidrO8CcAAA==
 	async create_bookmark(id) {
 		return await this.post_graphql('CreateBookmark', {
 			tweet_id: id,
@@ -401,18 +402,15 @@ class Query {
 	// `location` - string
 	// `description` - string
 	// `profile_link_color` - RRGGBB hex string
-	async update_profile(data) {
-		return await this.post_v11('account/update_profile.json', {
+	update_profile(data) {
+		this.post_v11('account/update_profile.json', {
 			skip_status: 1,
 			...data
 		})
 	}
 	
-	async log_out() {
-		let resp = await this.post_v11('account/logout.json', {}).then(x=>x.json())
-		if (resp.status=='ok') {
-			return true
-		}
+	log_out() {
+		return this.post_v11('account/logout.json', {})
 	}
 	
 	async update_profile_background(blob, tile) {
@@ -429,19 +427,6 @@ class Query {
 	//		image: b64,
 			tile: tile,
 		})
-	}
-	
-	async get_verify_form(params) {
-		// first we need to download the page and extract the form
-		let html = await fetch("https://twitter.com/account/login_verification"+params, {
-			headers: {
-				'x-12-cookie': `_twitter_sess=${this.auth.cookies._twitter_sess}; ct0=${this.auth.cookies.ct0}; att=${this.auth.cookies.att}`,
-			},
-			signal: this.signal,
-		}).then(x=>x.text())
-		let doc = new DOMParser().parseFromString(html, 'text/html')
-		let form = doc.getElementById('login-verification-form')
-		return new FormData(form)
 	}
 	
 	delete_tweet(id) {

@@ -1,8 +1,18 @@
 // yeah this is actually a javascript file
 // I named it .html so the editor will indent and highlight it
 document.body.innerHTML = `
+<side-bar class='Col'>
+	<a href='/home'>Home</a>
+	<a href='/notifications'>Notifs</a>
+</side-bar>
+	
+<main-scroller class='grow'>
+	<time-line id=$main_scroll></time-line>
+</main-scroller>
 
-<time-line id=$main_scroll></time-line>
+<image-viewer hidden id=$image_viewer class='Row' onclick="this.hidden=true">
+	<img id=$gallery_image>
+</image-viewer>
 
 <box-where-i-hide-the-template-elements hidden>
 	
@@ -69,7 +79,7 @@ document.body.innerHTML = `
 
 <template id=$TweetComposer>
 	<div data-id=main>
-		<textarea data-id=textarea></textarea>
+		<p data-id=textarea contenteditable></p>
 		<button data-id=send>Send</button>
 	</div>
 </template>
@@ -91,12 +101,19 @@ document.body.innerHTML = `
 </template>
 
 <template id=$LoginForm>
-	<form data-id=main method=dialog>
-		<input placeholder=Username name=username autocomplete=username><br>
-		<input placeholder=Password name=password type=password autocomplete=current-password><br>
-		<button>Log In</button><br>
-		<output name=output></output>
-	</form>
+	<div data-id=main>
+		<form method=dialog>
+			<input placeholder=Username name=username autocomplete=username><br>
+			<input placeholder=Password name=password type=password autocomplete=current-password><br>
+			<button>Log In</button><br>
+		</form>
+		<div data-id=extra hidden>
+			Your account has 2-factor authentication enabled:<br>
+			<input data-id=code placeholder="two factor auth code"><br>
+			<button data-id=code_submit>Submit</button>
+		</div>
+		<output data-id=output></output>
+	</div>
 </template>
 
 <template id=$Unknown>

@@ -151,5 +151,34 @@ tweet-poll {
 }
 
 poll-option {
+	
+}
 
+main-scroller {
+	display: block;
+	overflow-y: scroll;
+	height: 100%;
+}
+
+body {
+	display: flex;
+	flex-direction: row;
+}
+
+side-bar {
+	position: fixed;
+}
+
+html.f-loading body {
+	background-color: #DFC;
+}
+
+image-viewer {
+	position: fixed;
+	display: block;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 10;
 }
