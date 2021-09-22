@@ -6,8 +6,7 @@ document.body.innerHTML = `
 	<a href='/notifications'>Notifs</a>
 </side-bar>
 	
-<main-scroller class='grow'>
-	<time-line id=$main_scroll></time-line>
+<main-scroller class='grow' id=$main_scroll>
 </main-scroller>
 
 <image-viewer hidden id=$image_viewer class='Row' onclick="this.hidden=true">
@@ -15,6 +14,11 @@ document.body.innerHTML = `
 </image-viewer>
 
 <box-where-i-hide-the-template-elements hidden>
+	
+	<template id=$Timeline>
+		<time-line data-id=main>
+		</time-line>
+	</template>
 	
 	<template id=$List>
 		<tl-list data-id=main class='Row'>
@@ -56,10 +60,16 @@ document.body.innerHTML = `
 </template>
 
 <template id=$MediaPicture>
-	<media-image data-id=main class='Col'>
+	<media-item data-id=main class='Col'>
 		<img data-id=image class='grow'>
 		<a data-id=link>Download</a>
-	</media-image>
+	</media-item>
+</template>
+
+<template id=$MediaVideo>
+	<media-item data-id=main class='Col'>
+		<video data-id=image preload=none controls class='grow'></video>
+	</media-item>
 </template>
 
 <template id=$Poll>

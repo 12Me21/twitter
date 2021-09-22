@@ -1,3 +1,9 @@
+/* this lets us use width/height html attributes to set an image's intrinsic size without affecting how large it will display as */
+:where(img[width]) {
+	width: auto;
+	height: auto;
+}
+
 html {
 	font-family: roboto, sans-serif, twemoji, twitma;
 	line-height: 1.15;
@@ -39,7 +45,12 @@ media-box > * {
 	display: flex;
 }
 
-media-box > media-image > img {
+media-box > media-item > img {
+	height: 0;
+	object-fit: contain;
+}
+
+media-box > media-item > video {
 	height: 0;
 	object-fit: contain;
 }
@@ -181,4 +192,10 @@ image-viewer {
 	right: 0;
 	bottom: 0;
 	z-index: 10;
+}
+
+image-viewer > img {
+	object-fit: contain;
+	width: 0;
+	flex-grow: 1;
 }

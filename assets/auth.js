@@ -20,12 +20,17 @@ class Auth {
 	////////////////////////////////
 	
 	// this downloads a javascript file and extracts some values from it
-	// these values don't often change, but there's no point in caching them
+	// these values don't ever change, but there's no point in caching them
 	// since the js file will be cached forever anyway
+	
+	// TODO: catch the request to this file (which is made by the original twitter html page) and store the result so we can
+	// 1: avoid this second request
+	// 2: always get the newest version
+	// i.e.: /^https:\/\/abs.twimg.com\/responsive-web\/client-web\/main\.\d+\.js$/
 	async get_secrets() {
 		console.info("fetching secrets")
 		// awful hack.
-		let text = await fetch("https://abs.twimg.com/responsive-web/client-web/main.91699ca5.js").then(x=>x.text())
+		let text = await fetch("https://abs.twimg.com/responsive-web/client-web/main.1aa07975.js").then(x=>x.text())
 		this.bearer = text.match(/a="Web-12",s="(.*?)"/)[1]
 		this.querys = {}
 		this.mutations = {}
@@ -70,6 +75,7 @@ class Auth {
 		let url = new URL(x.url)
 		if (url.pathname=='/') {
 			// normal login success
+			this.login_from_cookies()
 			return ['ok']
 		} else if (url.pathname=='/account/login_verification') {
 			// (two factor authentication)
@@ -77,24 +83,26 @@ class Auth {
 			let html = await x.text()
 			let doc = new DOMParser().parseFromString(html, 'text/html')
 			let form = doc.getElementById('login-verification-form')
-			return ['2fa', new FormData(form)]
+			return ['2fa', {form: new FormData(form), twitter_sess: this.cookies._twitter_sess, att: this.cookies.att}]
 		} else {
 			return ['unknown', x.url]
 		}
 	}
 	
 	// 2fa
-	async login_verify(formdata, response) {
+	async login_verify(data, response) {
+		let formdata = data.form
 		formdata.set('challenge_response', response)
 		let resp = await fetch('https://twitter.com/account/login_verification', {
 			method: 'POST',
 			headers: {
-				'x-12-cookie': `_twitter_sess=${this.cookies._twitter_sess}; ct0=${this.csrf_token}; att=${this.cookies.att}`,
+				'x-12-cookie': `_twitter_sess=${data.twitter_sess}; ct0=${this.csrf_token}; att=${data.att}`,
 			},
 			body: new URLSearchParams(formdata),
 		})
 		if (resp.url=="https://twitter.com/") {
 			this.read_cookies()
+			this.login_from_cookies()
 			return true
 		}
 	}
@@ -103,6 +111,7 @@ class Auth {
 		await this.get_secrets()
 		this.read_cookies()
 		if (this.cookies.auth_token) {
+			this.login_from_cookies()
 			this.guest = false
 		} else {
 			await this.get_guest_token()
@@ -120,6 +129,11 @@ class Auth {
 		this.cookies = cookies
 	}
 	
+	login_from_cookies() {
+		this.twitter_sess = this.cookies._twitter_sess
+		this.auth_token = this.cookies.auth_token
+	}
+	
 	auth_headers() {
 		if (this.guest) {
 			return {
@@ -134,13 +148,8 @@ class Auth {
 				// `x-csrf-token` must match the `ct0` cookie
 				'x-csrf-token': this.csrf_token,
 				// this header will be turned into a real cookie header by the browser extension
-				'x-12-cookie': `_twitter_sess=${this.cookies._twitter_sess}; auth_token=${this.cookies.auth_token}; ct0=${this.csrf_token}`,
+				'x-12-cookie': `_twitter_sess=${this._twitter_sess}; auth_token=${this.auth_token}; ct0=${this.csrf_token}`,
 			}
 		}
 	}
 }
-
-// todo:
-// at init: determine if user is logged in, somehow (hard, because the auth cookies are httponly)
-// if not, request a guest token and enter guest mode
-// on logged in requests, set an http header which our extension replaces with the auth cookies

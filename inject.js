@@ -15,17 +15,23 @@ function url(file) {
 	return chrome.runtime.getURL('assets/'+file)
 }
 
+let fav = document.createElement('link')
+fav.rel = 'icon'
+fav.href = url('favicon.svg')
+document.head.append(fav)
+//	<link rel="mask-icon" sizes="any" href="https://abs.twimg.com/responsive-web/client-web/icon-svg.168b89d5.svg" color="#1da1f2">
+
 for (let file of ['core.css', 'style.css']) {
 	let elem = document.createElement('link')
 	elem.rel = 'stylesheet'
 	elem.href = url(file)
-	document.head.appendChild(elem)
+	document.head.append(elem)
 }
 
-for (let file of ['index.html', 'auth.js', 'query.js', 'draw.js', 'navigate.js', /*'twitter-text.js', 'nicedit.js'*/]) {
+for (let file of ['index.html', 'auth.js', 'query.js', 'mutate.js', 'draw.js', 'timeline.js', 'navigate.js', /*'twitter-text.js', 'nicedit.js'*/]) {
 	let elem = document.createElement('script')
 	elem.src = url(file)
-	document.head.appendChild(elem)
+	document.head.append(elem)
 }
 
 let c = `line-height: 1; font-size: 20px; white-space: pre; background-image: url("${url('bg.png')}"); background-size: 300px; text-shadow: -2px -2px 0 #000, 2px -1px 0 #000, -1px 2px 0 #000, 1px 1px 0 #000; color: white;`

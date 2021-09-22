@@ -1,11 +1,13 @@
 let auth
-let current
+let query
+let mutate
 let initial_pop
 
 // called when the page loads
 async function onload() {
 	auth = new Auth()
 	await auth.init()
+	mutate = new Mutate(auth)
 	// some browsers trigger `popstate` when the page loads, and some don't
 	// so we only run this if that didn't happen
 	if (!initial_pop) {
@@ -14,15 +16,107 @@ async function onload() {
 	}
 }
 
-document.addEventListener('click', function(e) {
-	for (let elem of e.path) {
-		if (elem instanceof HTMLAnchorElement && elem.origin==window.location.origin && !elem.download) {
-			e.preventDefault()
-			//console.log("handle navigation to:", elem.href)
-			go_to(elem.href)
-			break
+function scroll_add(x) {
+	$main_scroll.append(x)
+}
+
+class ClickAction {
+	constructor(check, handle) {
+		this.checker = check
+		this.handler = handle
+	}
+	
+	attempt(elem, event) {
+		if (this.checker(elem)) {
+			event.preventDefault()
+			try {
+				this.handler(elem, event)
+			} finally {
+				return true
+			}
+		}
+		return false
+	}
+	
+	static handle_event(event, actions) {
+		for (let elem of event.path) {
+			if (actions.find(a => a.attempt(elem, event)))
+				break;
 		}
 	}
+}
+
+click_actions = [
+	new ClickAction(
+		elem => elem instanceof HTMLAnchorElement && elem.origin==window.location.origin && !elem.download,
+		function(elem) {
+			go_to(elem.href)
+		}
+	),
+	new ClickAction(
+		elem => elem instanceof HTMLButtonElement && elem.dataset.interact,
+		async function(elem) {
+			let tweet = elem.closest('tl-tweet')
+			let type = elem.dataset.interact
+			let id = tweet.dataset.id
+			// this is repetitive
+			if (type=='retweet') {
+				if (elem.classList.contains('own-reaction')) {
+					elem.disabled = true
+					mutate.delete_retweet(id).then(x=>{
+						elem.classList.remove('own-reaction')
+					}).trap(ApiError, x=>{
+						console.log("unretweet failed?", x)
+					}).finally(x=>{
+						elem.disabled = false
+					})
+				} else {
+					elem.disabled = true
+					mutate.retweet(id).then(x=>{
+						elem.classList.add('own-reaction')
+					}).trap(ApiError, x=>{
+						console.log("retweet failed?", x)
+					}).finally(x=>{
+						elem.disabled = false
+					})
+				}
+			} else if (type=='like') {
+				if (elem.classList.contains('own-reaction')) {
+					elem.disabled = true
+					mutate.delete_react(id).then(x=>{
+						elem.classList.remove('own-reaction')
+					}).trap(ApiError, x=>{
+						console.log("reaction failed?", x)
+					}).finally(x=>{
+						elem.disabled = false
+					})
+				} else {
+					elem.disabled = true
+					mutate.react(id).then(x=>{
+						elem.classList.add('own-reaction')
+					}).trap(ApiError, x=>{
+						console.log("reaction failed?", x)
+					}).finally(x=>{
+						elem.disabled = false
+					})
+				}
+			} else if (type=='bookmark') {
+				elem.disabled = true
+				mutate.bookmark(id).then(x=>{
+					elem.classList.add('own-reaction')
+				}).trap(ApiError, x=>{
+					console.log('bookmark err', x)
+					// idk
+				}).finally(x=>{
+					elem.disabled = false
+				})
+			}
+		}
+	),
+]
+
+document.addEventListener('click', function(e) {
+	ClickAction.handle_event(e, click_actions)
 }, false)
 
 function go_to(url) {
@@ -72,48 +166,13 @@ class View {
 	}
 }
 
-/*function text_length(text) {
-	[0x0000-0x10FF]
-	[U+2000-U+200D]
-	[U+2010-U+201F]
-	[U+2032-U+2037]
-}*/
-
 // todo: we should have separate elements for like
 // - the timeline you're viewing
 // - a tweet you're viewing
 // - maybe user profile too?
 // - perhaps like, every time you navigate to a new thing, we create a new scroller, and store like, up to 3 at a time, so you can easily go back to the previous thing. sorta like tweetdeck
 
-// an 'instruction' contains 0 or more 'entries'
-function handle_instructions(insts, objects) {
-	for (let inst of insts.instructions) {
-		if (objects) {
-			if (inst.addEntries) {
-				for (let entry of inst.addEntries.entries)
-					add_entry(entry, objects)
-			} else {
-				timeline_add("instruction: "+JSON.stringify(inst))
-			}
-		} else {
-			let type = inst.type
-			if (type=='TimelineAddEntries') {
-				for (let entry of inst.entries)
-					add_entry(entry)
-			} else if (type=='TimelinePinEntry') {
-				add_entry(inst.entry)
-			} else {
-				timeline_add("instruction: "+JSON.stringify(inst))
-			}
-		}
-	}
-}
-
 // todo: some way to alter the url during/after rendering
-
-function timeline_add(elem) {
-	$main_scroll.append(elem)
-}
 
 let views = [
 	// todo: log in screen to add new account
@@ -135,18 +194,20 @@ let views = [
 	new View(
 		[true, 'lists'],
 		async (url) => {
-			let user = await current.get_user(url.path[0])
+			let user = await query.user(url.path[0])
 			if (user) {
-				let resp = await current.get_user_lists(user.id_str)
+				let resp = await query.user_lists(user.id_str)
 				return [user, resp.user.result.timeline.timeline]
 			} else {
 				return [user, null]
 			}
 		},
 		function(data) {
-			timeline_add(draw_profile(data[0]))
-			if (data[1])
-				handle_instructions(data[1])
+			scroll_add(draw_profile(data[0]))
+			if (data[1]) {
+				let x = new Timeline(data[1])
+				scroll_add(x.elem)
+			}
 		}
 	),
 	new View(
@@ -154,7 +215,7 @@ let views = [
 		async (url) => {
 			let params = new URLSearchParams(url.search)
 			let query = params.get('q')
-			return [query, await current.search(query)]
+			return [query, await query.search(query)]
 		},
 		function([query, resp]) {
 			let ids = template($SearchBox)
@@ -163,13 +224,14 @@ let views = [
 				go_to(search_url(ids.input.value))
 			}
 			ids.input.value = query
-			timeline_add(ids.main)
-			handle_instructions(resp.timeline, resp.globalObjects)
+			scroll_add(ids.main)
+			let x = new Timeline(resp.timeline, resp.globalObjects)
+			scroll_add(x.elem)
 		}
 	),
 	new View(
 		['logout'],
-		(url) => current.log_out(), //todo: should be button
+		(url) => mutate.log_out(), //todo: should be button
 		function(status) {
 			if (status) {
 				go_to("https://twitter.com/login")
@@ -206,7 +268,7 @@ let views = [
 					e.target.output.append(a)
 				}
 			}
-			timeline_add(ids.main)
+			scroll_add(ids.main)
 		},
 	),
 	new View(
@@ -218,99 +280,109 @@ let views = [
 			let ids = template($TweetComposer)
 			editable.add(ids.textarea)
 			
-			timeline_add(ids.main)
+			scroll_add(ids.main)
 			ids.send.onclick = async function() {
-				let resp = await current.create_tweet(ids.textarea.value)
-				go_to("https://twitter.com/heck/status/"+resp.create_tweet.tweet_results.result.rest_id)
+				let resp = await mutate.tweet(ids.textarea.value)
+				go_to("https://twitter.com/heck/status/"+resp.data.create_tweet.tweet_results.result.rest_id)
 			}
 		}
 	),
 	// twitter.com/<name>/status/<id>
 	new View(
 		[/^@?\w+$/, 'status', /^\d+$/],
-		(url) => current.get_tweet(url.path[2]),
+		(url) => query.tweet(url.path[2]),
 		function(data) {
 			if (data && data.threaded_conversation_with_injections) {
-				handle_instructions(data.threaded_conversation_with_injections)
+				let x = new Timeline(data.threaded_conversation_with_injections)
+				scroll_add(x.elem)
 			}
 		}
 	),
 	// twitter.com/home
 	new View(
 		['home'],
-		(url) => current.get_home(url.searchParams.get('cursor')),
+		(url) => query.home(url.searchParams.get('cursor')),
 		function(data) {
-			handle_instructions(data.timeline, data.globalObjects)
+			let x = new Timeline(data.timeline, data.globalObjects)
+			scroll_add(x.elem)
 		}
 	),
 	// twitter.com/notifications
 	new View(
 		['notifications'],
-		(url) => current.get_notifications(),
+		(url) => query.notifications(),
 		function(data) {
-			handle_instructions(data.timeline, data.globalObjects)
+			let x = new Timeline(data.timeline, data.globalObjects)
+			scroll_add(x.elem)
 		}
 	),
 	// twitter.com/<name>/followers
 	new View(
 		[true, 'followers'],
 		async function(url) {
-			let user = await current.get_user(url.path[0])
+			let user = await query.user(url.path[0])
 			if (user) {
-				let likes = await current.get_followers(user.id_str)
+				let likes = await query.followers(user.id_str)
 				return [user, likes.user.result.timeline.timeline]
 			} else {
 				return [user, null]
 			}
 		},
 		function(data) {
-			timeline_add(draw_profile(data[0]))
-			if (data[1])
-				handle_instructions(data[1])
+			scroll_add(draw_profile(data[0]))
+			if (data[1]) {
+				let x = new Timeline(data[1])
+				scroll_add(x.elem)
+			}
 		}
 	),
 	// twitter.com/<name>/likes
 	new View(
 		[true, 'likes'],
 		async function(url) {
-			let user = await current.get_user(url.path[0])
+			let user = await query.user(url.path[0])
 			if (user) {
-				let likes = await current.get_user_likes(user.id_str)
+				let likes = await query.user_likes(user.id_str)
 				return [user, likes.user.result.timeline.timeline]
 			} else {
 				return [user, null]
 			}
 		},
 		function(data) {
-			timeline_add(draw_profile(data[0]))
-			if (data[1])
-				handle_instructions(data[1])
+			scroll_add(draw_profile(data[0]))
+			if (data[1]) {
+				let x = new Timeline(data[1])
+				scroll_add(x.elem)
+			}
 		}
 	),
 	// twitter.com/i/bookmarks
 	new View(
 		['i', 'bookmarks'],
-		(url) => current.get_bookmarks(),
+		(url) => query.bookmarks(),
 		(data) => {
-			handle_instructions(data)
+			let x = new Timeline(data)
+			scroll_add(x.elem)
 		}
 	),
 	// twitter.com/<name>
 	new View(
 		[/^@?\w+$/],
 		async (url) => {
-			let user = await current.get_user(url.path[0])
+			let user = await query.user(url.path[0])
 			if (user) {
-				let profile = await current.get_profile(user.id_str)
+				let profile = await query.profile(user.id_str)
 				return [user, profile]
 			} else {
 				return [user, null]
 			}
 		},
 		(data) => {
-			$main_scroll.append(draw_profile(data[0]))
-			if (data[1])
-				handle_instructions(data[1])
+			scroll_add(draw_profile(data[0]))
+			if (data[1]) {
+				let x = new Timeline(data[1])
+				scroll_add(x.elem)
+			}
 		}
 	),
 ]
@@ -345,10 +417,10 @@ async function render(url) {
 	// abort all requests from the previous page
 	// todo: really we just want to abort some things (i.e. downloading data)
 	// and not, i.e. a Reaction request or something
-	if (current)
-		current.abort()
+	if (query)
+		query.abort()
 	
-	current = new Query(auth) //todo: we can maybe store othre data here? like url
+	query = new Query(auth) //todo: we can maybe store othre data here? like url
 	
 	console.log("view:", view.path)
 	

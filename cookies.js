@@ -82,3 +82,13 @@ chrome.webRequest.onHeadersReceived.addListener(
 
 // todo: we need to find a better method to completely block the real twitter html from loading.
 // this file is extremely dangerous and greatly increases loading times etc.
+
+// hghhhgfhifkjdsfoedoguwrk
+/*chrome.webRequest.onBeforeRequest.addListener(
+	function(details) {
+		console.log('cw', details)
+		return {cancel: true}
+	},
+	{urls: ['https://abs.twimg.com/responsive-web/client-web/*']},
+	['blocking'],
+)*/
