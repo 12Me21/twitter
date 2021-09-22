@@ -2,15 +2,49 @@ let auth
 let query
 let mutate
 let initial_pop
+let auth_app
+let ready = false
+let buffered_location
+
+async function swap_accounts() {
+	// 1: make new auth object
+	auth = new Auth(auth_app)
+	// 2: log in to new auth, either:
+	//  - from localstorage
+	//  - from twitter cookies
+	//  - from new login
+	//...
+	// 3: create new mutate/query objects
+	// really, now that I think about it, 
+	// the mutate/query objs should maybe be inside of auth rather than the other way around
+	mutate = new Mutate(auth)
+	if (query)
+		query.abort()
+	query = null
+	// 4: reload page
+	await render_from_location()
+}
 
 // called when the page loads
 async function onload() {
-	auth = new Auth()
+	// TODO: all this stuff can be done BEFORE onload
+	//	init app
+	auth_app = new App()
+	await auth_app.init()
+	// init auth
+	auth = new Auth(auth_app)
 	await auth.init()
+	auth.settings = await auth.get_settings()
+	// 
 	mutate = new Mutate(auth)
+	
+	
+	// NOW we are ready
+	ready = true
+	
 	// some browsers trigger `popstate` when the page loads, and some don't
 	// so we only run this if that didn't happen
-	if (!initial_pop) {
+	if (!initial_pop || buffered_location) {
 		initial_pop = true
 		await render_from_location()
 	}
@@ -132,7 +166,10 @@ window.addEventListener('load', onload)
 // called when the browser navigates forward/backward
 window.onpopstate = function() {
 	initial_pop = true
-	render_from_location()
+	if (ready)
+		render_from_location()
+	else
+		buffered_location = true
 }
 
 // render a page based on the current url

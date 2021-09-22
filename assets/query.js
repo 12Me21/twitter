@@ -22,8 +22,10 @@ class Query {
 			this.abort_controller.abort()
 	}
 	
-	get_v11(url) {
-		return fetch("https://twitter.com/i/api/1.1/"+url, {
+	get_v11(path, params) {
+		if (params)
+			path = path + encode_url_params(params)
+		return fetch("https://twitter.com/i/api/1.1/"+path, {
 			headers: this.auth.auth_headers(),
 			signal: this.signal,
 		}).then(x=>x.json())
@@ -37,7 +39,7 @@ class Query {
 	}
 	
 	get_graphql(type, params) {
-		let q = this.auth.querys[type]
+		let q = this.auth.app.querys[type]
 		return fetch(`https://twitter.com/i/api/graphql/${q}/${type}?variables=${encodeURIComponent(JSON.stringify(params))}`, {
 			headers: this.auth.auth_headers(),
 			signal: this.signal,
@@ -296,21 +298,6 @@ class Query {
 			listId: id,
 			count: 20,
 			withSuperFollowsUserFields:true,withUserResults:true,withBirdwatchPivots:false,withReactionsMetadata:false,withReactionsPerspective:false,withSuperFollowsTweetFields:true,
-		})
-	}
-	
-	// this is normally the first significant request when you load the page.
-	// it contains important info like your username, language, etc.
-	settings() {
-		return this.get_v11('account/settings.json', {
-			include_mention_filter: true,
-			include_nsfw_user_flag: true,
-			include_nsfw_admin_flag: true,
-			include_ranked_timeline: true,
-			include_alt_text_compose: true,
-			ext: 'ssoConnections',
-			include_country_code: true,
-			include_ext_dm_nsfw_media_filter: true,
 		})
 	}
 }

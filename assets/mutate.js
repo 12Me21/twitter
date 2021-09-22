@@ -56,7 +56,7 @@ class Mutate {
 	}
 	
 	async post_graphql(type, params, body) {
-		let q = this.auth.mutations[type]
+		let q = this.auth.app.mutations[type]
 		let resp = await fetch(`https://twitter.com/i/api/graphql/${q}/${type}`, {
 			method: 'POST',
 			headers: {
