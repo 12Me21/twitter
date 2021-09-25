@@ -26,6 +26,7 @@ function draw_media(value, name) {
 	if (value.type=='photo') {
 		return draw_image(value, name)
 	} else if (value.type=='video') {
+		// todo: find the right variant
 		return draw_video(value.video_info.variants[0].url, value.media_url_https)
 	} else if (value.type=='animated_gif') {
 		return draw_video(value.video_info.variants[0].url, value.media_url_https)
@@ -213,7 +214,6 @@ function draw_list(data) {
 
 // cards are used for website previews etc. but ALSO for polls
 function draw_card(card) {
-	console.log(card)
 	if (/^poll\d+choice_text_only$/.test(card.name)) {
 		let ids = template($Poll)
 		let choices = Number(card.name.match(/^poll(\d+)choice_text_only$/)[1])
@@ -318,6 +318,7 @@ function draw_tweet(id, objects) {
 			tweet = objects.tweets[tweet.retweeted_status_id_str]
 			ids.note.append("Retweeted by ")
 			ids.note.append(draw_names(retweeter))
+			ids.main.dataset.rt_id = tweet.id_str
 		} else {
 			ids.note.remove()
 		}
@@ -397,7 +398,6 @@ function draw_tweet(id, objects) {
 }
 
 function draw_profile(user) {
-	console.log(user)
 	if (user) {
 		let ids = template($Profile)
 		

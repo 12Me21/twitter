@@ -1,3 +1,4 @@
+// oops why is this in this file
 Promise.prototype.trap = function(type, a2, a3) {
 	if (a3) {
 		return this.catch(err=>{
@@ -27,12 +28,12 @@ class ApiError extends Error {
 class Mutate {
 	constructor(auth) {
 		this.auth = auth
-		this.abort_controller = new AbortController()
-		this.signal = this.abort_controller.signal
+		//this.abort_controller = new AbortController()
+		//this.signal = this.abort_controller.signal
 	}
 	
-	post_v11(url, body, extra_headers) {
-		return fetch("https://twitter.com/i/api/1.1/"+url, {
+	async post_v11(url, body, extra_headers) {
+		let resp = await fetch("https://twitter.com/i/api/1.1/"+url+".json", {
 			method: 'POST',
 			headers: {
 				...this.auth.auth_headers(),
@@ -40,11 +41,20 @@ class Mutate {
 			},
 			body: new URLSearchParams(body),
 			signal: this.signal,
-		}).then(x=>x.json())
+		})
+		let data = await resp.json()
+		if (x.ok)
+			return data
+		throw new ApiError(data)
+		// ex: 
+		// 404 - {errors: [{code: 34, message: "Sorry, that page does not exist."}]} (ex: when trying to unfollow a user that doesn't exist)
+		// 403 - {errors: [{code: 108, message: "Cannot find specified user."}]} (ex: when trying to follow a user that doesn't exist)
+		// http error code itself seems to be somewhat arbitrary
 	}
 	
+	// todo: ugh
 	post_v11_json(url, body) {
-		return fetch("https://twitter.com/i/api/1.1/"+url, {
+		return fetch("https://twitter.com/i/api/1.1/"+url+".json", {
 			method: 'POST',
 			headers: {
 				'Content-Type': "application/json",
@@ -66,6 +76,7 @@ class Mutate {
 			body: JSON.stringify({variables: JSON.stringify(params), queryId: q.queryId}), // god you can't make this shit up
 			signal: this.signal,
 		}).then(x=>x.json())
+		// YOUR ERRORS COME BACK AS 200 OK
 		if (resp.errors && resp.errors.length)
 			throw new ApiError(resp)
 		return resp.data
@@ -130,13 +141,13 @@ class Mutate {
 	}
 	
 	pin_tweet(id) {
-		return this.post_v11("account/pin_tweet.json", {
+		return this.post_v11("account/pin_tweet", {
 			id: id,
 			tweet_mode: 'extended',
 		})
 	}
 	unpin_tweet(id) {
-		return this.post_v11("account/unpin_tweet.json", {
+		return this.post_v11("account/unpin_tweet", {
 			id: id,
 			tweet_mode: 'extended',
 		})
@@ -188,18 +199,11 @@ class Mutate {
 		})
 		// success:
 		// {data:{tweet_bookmark_put: "Done"}}
-		// already bookmarked:
-		// {data:{},errors:[{
-		//message:"BadRequest: You have already bookmarked this Tweet.",
-		//path:["tweet_bookmark_put"],
-		//locations:[{line:2,column:3}],
-		//name:"BadRequestError",
-		//source:"Client",
-		//code:405,
-		//kind:"Validation",
-		//tracing:{trace_id:"6d25b01bb8671187"},
-		//extensions:{"name":"BadRequestError","source":"Client","code":405,"kind":"Validation","tracing":{"trace_id":"6d25b01bb8671187"}}
-		//}]}
+		
+		// already bookmarked error:
+		/* {message:"BadRequest: You have already bookmarked this Tweet.", path:["tweet_bookmark_put"], locations:[{line:2,column:3}], name:"BadRequestError", source:"Client", code:405, kind:"Validation",tracing:{trace_id:"6d25b01bb8671187"},extensions:{"name":"BadRequestError","source":"Client","code":405,"kind":"Validation","tracing":{"trace_id":"6d25b01bb8671187"}}}*/
+		// bookmarking a retweet error: (and probably nonexistant tweets too)
+		/*{"message":"_Missing: Sorry that page does not exist","path":["tweet_bookmark_put"],"locations":[{"line":2,"column":3}],"name":"GenericError","source":"Server","code":34,"kind":"NonFatal","tracing":{"trace_id":"91aabcbf0415b1bf"},"extensions":{"name":"GenericError","source":"Server","code":34,"kind":"NonFatal","tracing":{"trace_id":"91aabcbf0415b1bf"}}}*/
 	}
 	
 	delete_bookmark(id) {
@@ -219,14 +223,14 @@ class Mutate {
 	// `description` - string
 	// `profile_link_color` - RRGGBB hex string
 	update_profile(data) {
-		return this.post_v11('account/update_profile.json', {
+		return this.post_v11('account/update_profile', {
 			skip_status: 1,
 			...data
 		})
 	}
 	
 	log_out() {
-		return this.post_v11('account/logout.json', {})
+		//return this.post_v11('account/logout', {})
 	}
 	
 	delete_tweet(id) {
@@ -237,7 +241,7 @@ class Mutate {
 	}
 	
 	create_metadata(id, data) {
-		return this.post_v11_json("media/metadata/create.json", {
+		return this.post_v11_json("media/metadata/create", {
 			media_id: id,
 			...data,
 		})
@@ -303,5 +307,116 @@ class Mutate {
 		})
 	}
 
+	// add a user to a list.
+	// note: the UI lets you add/remove a user to multiple lists at once, but this is just processed using multiple requests to ListAddMember and ListRemoveMember
+	list_add_member(list_id, user_id) {
+		return this.post_graphql('ListAddMember', {
+			listId: list_id,
+			userId: user_id,
+			withSuperFollowsUserFields: true,
+			withUserResults: true,
+		})
+		// success: 
+		// {"data":{"list":{"created_at":1585878427000,"default_banner_media":{"media_info":{"original_img_url":"https://pbs.twimg.com/media/EXZ2w_qUcAMwN3x.png","original_img_width":1125,"original_img_height":375,"salient_rect":{"left":562,"top":187,"width":1,"height":1}}},"description":"test","following":true,"id_str":<list id>,"member_count":14,"mode":"Private","user_results":{"result":{"__typename":"User","id":"VXNlcjo3MDA0NTA0Njk3NjQ4NjYwNDg=","rest_id":<list owner id>,"affiliates_highlighted_label":{},"legacy":{<list data>},"super_follow_eligible":false,"super_followed_by":false,"super_following":false}},"name":"test","is_member":false,"subscriber_count":0,"muting":false,"pinning":true}}}
+	}
+	list_remove_member(list_id, user_id) {
+		return this.post_graphql('ListRemoveMember', {
+			listId: list_id,
+			userId: user_id,
+			withSuperFollowsUserFields: true,
+			withUserResults: true,
+		})
+		// success: 
+		// (same as list_add_member)
+	}
 	
+	mute_user(id) {
+		return this.post_v11('mutes/users/create', {
+			//impression_id: ??
+			user_id: id,
+		})
+	}
+	unmute_user(id) { //hmm.. i kinda like the pattern of using "un-" prefix for deletion methods... "untweet" "list_unadd_member" lol
+		return this.post_v11('mutes/users/destroy', {
+			user_id: id,
+		})
+	}
+	block(id) {
+		return this.post_v11('blocks/create', {
+			//impression_id: ??
+			user_id: id,
+		})
+	}
+	unblock(id) {
+		return this.post_v11('blocks/destroy', {
+			user_id: id,
+		})
+	}
+	// enable/disable showing retweets from this user in your timeline
+	retweets(id, state) {
+		return this.post_v11('friendships/update', {
+			cursor: -1,
+			id: id,
+			retweets: state,
+		})
+		// success:
+		// {relationship: {source:{<user>}, target:{<user>}}}
+	}
+	// enable/disable getting notifications for this user's actions i guess
+	notify(id, state) {
+		return this.post_v11('friendships/update', {
+			cursor: -1,
+			id: id,
+			device: state,
+		})
+		// success:
+		// {relationship: {source:{<user>}, target:{<user>}}}
+	}
+	follow(id) {
+		return this.post_v11('friendships/create', {
+			id: id,
+		})
+		// success: returns user object (even if user is already followed/unfollowed)
+	}
+	unfollow(id) {
+		return this.post_v11('friendships/destroy', { //💔
+			id: id,
+		})
+	}
+	
+	// 1984
+	// mode can be:
+	// - 'ByInvitation' (people you mentioned + you)
+	// - 'Community' (people you follow + you)
+	// - none (everyone)
+	conversation_control(tweet_id, mode) {
+		if (mode) {
+			return this.post_graphql('ConversationControlChange', {
+				tweet_id: tweet_id,
+				mode: mode,
+			})
+		} else {
+			return this.post_graphql('ConversationControlDelete', {
+				tweet_id: tweet_id,
+			})
+		}
+		// success:
+		// {data: {tweet_conversation_control_put: "Done"}}
+		// {data: {tweet_conversation_control_delete: "Done"}}
+	}
+	
+	mute_conversation(id) {
+		return this.post_v11('mutes/conversations/create', {
+			tweet_mode: 'extended',
+			tweet_id: id,
+		})
+		// success: returns tweet obj
+	}
+	unmute_conversation(id) {
+		return this.post_v11('mutes/conversations/destroy', {
+			tweet_mode: 'extended',
+			tweet_id: id,
+		})
+		// success: returns tweet obj
+	}
 }

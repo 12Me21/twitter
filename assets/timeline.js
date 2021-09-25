@@ -109,7 +109,7 @@ class Timeline {
 			if (result.card) {
 				result.legacy.card = result.card.legacy
 				let map = {}
-				for (x of result.card.legacy.binding_values) {
+				for (let x of result.card.legacy.binding_values) {
 					map[x.key] = x.value
 				}
 				result.legacy.card.binding_values = map

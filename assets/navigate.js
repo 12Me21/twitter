@@ -2,42 +2,41 @@ let auth
 let query
 let mutate
 let initial_pop
-let auth_app
+let auth_app = new App()
 let ready = false
 let buffered_location
 
-async function swap_accounts() {
-	// 1: make new auth object
-	auth = new Auth(auth_app)
-	// 2: log in to new auth, either:
-	//  - from localstorage
-	//  - from twitter cookies
-	//  - from new login
-	//...
-	// 3: create new mutate/query objects
+// never assign to `auth` directly. use this function to switch the "current" account instead
+async function swap_accounts(na) {
+	auth = na
+	auth.set_current()
 	// really, now that I think about it, 
 	// the mutate/query objs should maybe be inside of auth rather than the other way around
 	mutate = new Mutate(auth)
 	if (query)
 		query.abort()
 	query = null
+	auth.settings_promise.then(x=>{
+		$profile_link.textContent = auth.settings.screen_name
+		$profile_link.href = "/"+auth.settings.screen_name
+	})
 	// 4: reload page
-	await render_from_location()
+	//await render_from_location()
 }
+
+let login_promise = auth_app.init().then(x=>{
+	auth = new Auth(auth_app)
+})
 
 // called when the page loads
 async function onload() {
-	// TODO: all this stuff can be done BEFORE onload
-	//	init app
-	auth_app = new App()
-	await auth_app.init()
-	// init auth
-	auth = new Auth(auth_app)
-	await auth.init()
-	auth.settings = await auth.get_settings()
-	// 
-	mutate = new Mutate(auth)
+	await login_promise
 	
+	auth.init_auto()
+	
+	swap_accounts(auth)
+	
+	//mutate = new Mutate(auth)
 	
 	// NOW we are ready
 	ready = true
@@ -135,6 +134,7 @@ click_actions = [
 					})
 				}
 			} else if (type=='bookmark') {
+				id = tweet.dataset.rt_id || id // can't bookmark retweets
 				elem.disabled = true
 				mutate.bookmark(id).then(x=>{
 					elem.classList.add('own-reaction')
@@ -165,11 +165,15 @@ window.addEventListener('load', onload)
 
 // called when the browser navigates forward/backward
 window.onpopstate = function() {
-	initial_pop = true
-	if (ready)
+	if (ready) {
+		initial_pop = true
 		render_from_location()
-	else
-		buffered_location = true
+	} else {
+		// hopefully this only happens on the initial load.
+		// it may also happen if the user clicks a link before the page is fully initialized
+		// regardless, it should be fine, as the page will be updated properly
+		// in the onload function
+	}
 }
 
 // render a page based on the current url
@@ -225,7 +229,18 @@ let views = [
 		['account', 'switch'],
 		null,
 		function() {
-			
+			let accts = json(localStorage.getItem('12-accounts')) || {}
+			for (let name in accts) {
+				let x = document.createElement('button')
+				x.textContent = name
+				let tokens = accts[name]
+				x.onclick = function() {
+					let a = new Auth(auth_app)
+					a.init_from_tokens(tokens.twitter_sess, tokens.auth_token)
+					swap_accounts(a)
+				}
+				scroll_add(x)
+			}
 		}
 	),
 	new View(
@@ -281,19 +296,22 @@ let views = [
 		function(data) {
 			let ids = template($LoginForm)
 			let output = ids.output
+			let auth2 = new Auth(auth_app)
 			ids.main.onsubmit = async function(e) {
 				e.preventDefault()
 				let username = e.target.username.value
 				let password = e.target.password.value
-				let [status, ext] = await auth.log_in(username, password)
+				let [status, ext] = await auth2.log_in(username, password)
 				if (status=='ok') {
 					ids.output.textContent = "Logged in!"
+					swap_accounts(auth2)
 					go_to("https://twitter.com/home")
 				} else if (status=='2fa') {
 					ids.extra.hidden = false
 					ids.code_submit.onclick = async function(e) {
-						if (await auth.login_verify(ext, ids.code.value)) {
+						if (await auth2.login_verify(ids.code.value)) {
 							ids.output.textContent = "Logged in!"
+							swap_accounts(auth2)
 							go_to("https://twitter.com/home")
 						}
 					}
@@ -484,13 +502,18 @@ async function render(url) {
 	$main_scroll.replaceChildren()
 	$main_scroll.scrollTop = 0
 	// and call the render function to display the data
-	try {
-		view.render(resp)
-	} catch (e) {
-		console.error(e)
-		view = error_view
-		resp = view.request(e)
-		view.render(resp)
-	}
+	document.documentElement.classList.add('f-rendering')
 	document.documentElement.classList.remove('f-loading')
+	// i defer this with settimeout so the color has time to change
+	setTimeout(x=>{
+		try {
+			view.render(resp)
+		} catch (e) {
+			console.error(e)
+			view = error_view
+			resp = view.request(e)
+			view.render(resp)
+		}
+		document.documentElement.classList.remove('f-rendering')
+	}, 0)
 }

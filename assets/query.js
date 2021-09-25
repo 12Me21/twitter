@@ -228,7 +228,7 @@ class Query {
 			send_error_codes: true,
 			simple_quoted_tweet: true,
 			earned: 1,
-			count: 20,
+			count: 3,
 			lca: true,
 			...cursor && {cursor: cursor},
 			ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo",
@@ -293,6 +293,7 @@ class Query {
 		})
 	}
 	
+	// this is used by the twitter.com/i/lists page
 	list(id) {
 		return this.get_graphql('ListLatestTweetsTimeline', {
 			listId: id,
@@ -300,4 +301,71 @@ class Query {
 			withSuperFollowsUserFields:true,withUserResults:true,withBirdwatchPivots:false,withReactionsMetadata:false,withReactionsPerspective:false,withSuperFollowsTweetFields:true,
 		})
 	}
+	//this is used when you click "add to lists" on a user's profile
+	// which for some reason has the url: https://mobile.twitter.com/i/lists/add_member (does not contain the user's name? so idk what the UI for this one looked like originally)
+	// returns all of your lists.
+	list_ownerships(my_id, user_id) {
+		return this.get_graphql('ListOwnerships', {
+			userId: my_id,
+			isListMemberTargetUserId: user_id,
+			count: 20,
+			withSuperFollowsUserFields: true,
+			withUserResults: false,
+			withBirdwatchPivots: false,
+			withReactionsMetadata: false,
+			withReactionsPerspective: false,
+			withSuperFollowsTweetFields: true
+		})
+		// data.user.result.timeline.timeline contains render instructions
+		// the `is_member` field is `true` for lists which contain the target user.
+	}
+	// this is ALSO requested with the previous, for some reason. seems to be redundant
+	// this returns all of your lists that contain `user_id`.
+	list_memberships(user_id) {
+		return this.get_v11('lists/memberships.json', {
+			include_profile_interstitial_type: 1,
+			include_blocking: 1,
+			include_blocked_by: 1,
+			include_followed_by: 1,
+			include_want_retweets: 1,
+			include_mute_edge: 1,
+			include_can_dm: 1,
+			include_can_media_tag: 1,
+			skip_status: 1,
+			cards_platform: 'Web-12',
+			include_cards: 1,
+			include_ext_alt_text: true,
+			include_quote_count: true,
+			include_reply_count: 1,
+			tweet_mode: 'extended',
+			cursor: -1,
+			user_id: user_id,
+			count: 1000,
+			filter_to_owned_lists: true,
+		})
+		// response example: (user is in one list)
+		/*{
+			"next_cursor":0,
+			"next_cursor_str":"0",
+			"previous_cursor":0,
+			"previous_cursor_str":"0",
+			"lists":[{
+				"id":<id>,
+				"id_str":"<id>",
+				"name":"test",
+				"uri":"\/12Me21_\/lists\/test",
+				"subscriber_count":0,
+				"member_count":14,
+				"mode":"private",
+				"description":"test",
+				"slug":"test",
+				"full_name":"@12Me21_\/test",
+				"created_at":"Fri Apr 03 01:47:07 +0000 2020",
+				"following":true,
+				"user":{<list owner info>}
+			}]
+		}*/
+	}
+	
+	//ConversationControlDelete
 }

@@ -34,6 +34,14 @@ html {
 	/*flex-shrink: 0;*/
 }
 
+.Col:not(.flex-wrap) > .grow {
+	height: 0;
+}
+
+.Row:not(.flex-wrap) > .grow {
+	width: 0;
+}
+
 .flex-wrap {
 	flex-wrap: wrap;
 }
