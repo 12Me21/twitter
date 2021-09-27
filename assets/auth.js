@@ -236,12 +236,12 @@ class Auth {
 		let x = await fetch('https://twitter.com/sessions', {
 			method: 'POST',
 			headers: {
-				'x-12-cookie': "_mb_tk=see_my_balls"
+				'x-12-cookie': "_mb_tk=see_my_balls"+Date.now()
 			},
 			body: new URLSearchParams({
 				remember_me: 1,
 				redirect_after_login: "/",
-				authenticity_token: "see_my_balls",
+				authenticity_token: "see_my_balls"+Date.now(),
 				'session[username_or_email]': username,
 				'session[password]': password,
 			}),

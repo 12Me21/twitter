@@ -152,8 +152,10 @@ function draw_image(media, name) {
 	ids.link.href = `${base}?format=${ext}&name=orig`
 	ids.link.download = name+"."+ext
 	ids.link.onclick = download_link_onclick
-	let col = media.ext_media_color.palette[0].rgb
-	ids.image.style.backgroundColor = `rgb(${col.red},${col.green},${col.blue})`
+	if (media.ext_media_color) {
+		let col = media.ext_media_color.palette[0].rgb
+		ids.image.style.backgroundColor = `rgb(${col.red},${col.green},${col.blue})`
+	}
 	ids.image.onclick = image_onclick
 	return ids.main
 }

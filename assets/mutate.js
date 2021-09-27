@@ -33,7 +33,7 @@ class Mutate {
 	}
 	
 	async post_v11(url, body, extra_headers) {
-		let resp = await fetch("https://twitter.com/i/api/1.1/"+url+".json", {
+		let resp = await fetch("https://twitter.com/i/api/1.1/"+url, {
 			method: 'POST',
 			headers: {
 				...this.auth.auth_headers(),
@@ -54,7 +54,7 @@ class Mutate {
 	
 	// todo: ugh
 	post_v11_json(url, body) {
-		return fetch("https://twitter.com/i/api/1.1/"+url+".json", {
+		return fetch("https://twitter.com/i/api/1.1/"+url, {
 			method: 'POST',
 			headers: {
 				'Content-Type': "application/json",
@@ -141,13 +141,13 @@ class Mutate {
 	}
 	
 	pin_tweet(id) {
-		return this.post_v11("account/pin_tweet", {
+		return this.post_v11("account/pin_tweet.json", {
 			id: id,
 			tweet_mode: 'extended',
 		})
 	}
 	unpin_tweet(id) {
-		return this.post_v11("account/unpin_tweet", {
+		return this.post_v11("account/unpin_tweet.json", {
 			id: id,
 			tweet_mode: 'extended',
 		})
@@ -223,7 +223,7 @@ class Mutate {
 	// `description` - string
 	// `profile_link_color` - RRGGBB hex string
 	update_profile(data) {
-		return this.post_v11('account/update_profile', {
+		return this.post_v11('account/update_profile.json', {
 			skip_status: 1,
 			...data
 		})
@@ -241,7 +241,7 @@ class Mutate {
 	}
 	
 	create_metadata(id, data) {
-		return this.post_v11_json("media/metadata/create", {
+		return this.post_v11_json("media/metadata/create.json", {
 			media_id: id,
 			...data,
 		})
@@ -331,30 +331,30 @@ class Mutate {
 	}
 	
 	mute_user(id) {
-		return this.post_v11('mutes/users/create', {
+		return this.post_v11('mutes/users/create.json', {
 			//impression_id: ??
 			user_id: id,
 		})
 	}
 	unmute_user(id) { //hmm.. i kinda like the pattern of using "un-" prefix for deletion methods... "untweet" "list_unadd_member" lol
-		return this.post_v11('mutes/users/destroy', {
+		return this.post_v11('mutes/users/destroy.json', {
 			user_id: id,
 		})
 	}
 	block(id) {
-		return this.post_v11('blocks/create', {
+		return this.post_v11('blocks/create.json', {
 			//impression_id: ??
 			user_id: id,
 		})
 	}
 	unblock(id) {
-		return this.post_v11('blocks/destroy', {
+		return this.post_v11('blocks/destroy.json', { // ⛏
 			user_id: id,
 		})
 	}
 	// enable/disable showing retweets from this user in your timeline
 	retweets(id, state) {
-		return this.post_v11('friendships/update', {
+		return this.post_v11('friendships/update.json', {
 			cursor: -1,
 			id: id,
 			retweets: state,
@@ -364,7 +364,7 @@ class Mutate {
 	}
 	// enable/disable getting notifications for this user's actions i guess
 	notify(id, state) {
-		return this.post_v11('friendships/update', {
+		return this.post_v11('friendships/update.json', {
 			cursor: -1,
 			id: id,
 			device: state,
@@ -373,13 +373,13 @@ class Mutate {
 		// {relationship: {source:{<user>}, target:{<user>}}}
 	}
 	follow(id) {
-		return this.post_v11('friendships/create', {
+		return this.post_v11('friendships/create.json', {
 			id: id,
 		})
 		// success: returns user object (even if user is already followed/unfollowed)
 	}
 	unfollow(id) {
-		return this.post_v11('friendships/destroy', { //💔
+		return this.post_v11('friendships/destroy.json', { //💔
 			id: id,
 		})
 	}
@@ -406,17 +406,42 @@ class Mutate {
 	}
 	
 	mute_conversation(id) {
-		return this.post_v11('mutes/conversations/create', {
+		return this.post_v11('mutes/conversations/create.json', {
 			tweet_mode: 'extended',
 			tweet_id: id,
 		})
 		// success: returns tweet obj
 	}
 	unmute_conversation(id) {
-		return this.post_v11('mutes/conversations/destroy', {
+		return this.post_v11('mutes/conversations/destroy.json', {
 			tweet_mode: 'extended',
 			tweet_id: id,
 		})
 		// success: returns tweet obj
+	}
+	
+	task_test() {
+		return this.post_v11_json('onboarding/task.json?flow_name=login', {
+			input_flow_data:{
+				flow_context:{
+					debug_overrides:{},
+					start_location:{location:"splash_screen"}
+				}
+			},
+			subtask_versions:{
+				contacts_live_sync_permission_prompt:0,
+				email_verification:1,
+				topics_selector:1,
+				wait_spinner:1,
+				cta:4
+			}
+		})
+	}
+	
+	task_test2(token, st) {
+		return this.post_v11_json('onboarding/task.json', {
+			flow_token: token,
+			subtask_inputs: st,
+		})
 	}
 }

@@ -133,12 +133,23 @@ class Timeline {
 				if (content.tweet.promotedMetadata)
 					return null
 				let elem = draw_tweet(content.tweet.id, objects)
-				let gc = content.tweet.socialContext?.generalContext
-				if (gc) {
-					let x = document.createElement('div')
-					x.append(gc.text)
-					x.append(elem)
-					return x
+				let sc = content.tweet.socialContext
+				// todo: draw_context_label function
+				if (sc) {
+					if (sc.generalContext) {
+						let x = document.createElement('div')
+						x.append(sc.generalContext.text)
+						x.append(elem)
+						return x
+					} else if (sc.topicContext) {
+						let t = objects.topics[sc.topicContext.topicId]
+						if (t) {
+							let x = document.createElement('div')
+							x.append("Topic: "+t.name)
+							x.append(elem)
+							return x
+						}
+					}
 				}
 				return elem
 			} else if (content.notification) {
@@ -151,7 +162,7 @@ class Timeline {
 			
 			if (type=='TimelineTweet') {
 				let result = content.tweet_results.result
-				let objects = {tweets:{}, users:{}}
+				let objects = {tweets:{}, users:{}, topics:{}}// todo: fill more?
 				let id = this.tweet_to_v2(content.tweet_results.result, objects)
 				return draw_tweet(id, objects)
 			} else if (type=='TimelineTimelineCursor') {

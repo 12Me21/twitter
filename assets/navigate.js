@@ -318,9 +318,9 @@ let views = [
 				} else {
 					ids.output.textContent = "Login failed. You may need to visit the following page: "
 					let a = document.createElement('a')
-					a.href = error
-					a.textContent = error
-					e.target.output.append(a)
+					a.href = ext
+					a.textContent = ext
+					ids.output.append(a)
 				}
 			}
 			scroll_add(ids.main)
