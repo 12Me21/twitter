@@ -360,11 +360,11 @@ function draw_tweet(id, objects) {
 		if (tweet.quoted_status_id_str) {
 			ids.contents.append(draw_tweet(tweet.quoted_status_id_str, objects))
 		}
-		// regular interaction counts
+		// regular interaction counts 
 		let x = document.createDocumentFragment()
 		x.append(draw_reaction("🔁", 'retweet', tweet.retweet_count, tweet.retweeted))
-		x.append(draw_reaction("qrt", 'quote', tweet.quote_count))
-		x.append(draw_reaction("reply", 'reply', tweet.reply_count))
+		x.append(draw_reaction("Q", 'quote', tweet.quote_count))
+		x.append(draw_reaction("R", 'reply', tweet.reply_count))
 		x.append(draw_reaction("💙", 'like', tweet.favorite_count, tweet.favorited))
 		// draw reactions (secret)
 		if (tweet.ext && tweet.ext.signalsReactionMetadata) {
@@ -378,7 +378,7 @@ function draw_tweet(id, objects) {
 						Haha: "(lol)", // can't find a decent icon that stands out. these probably need to be color coded so it's easier to tell the faces apart.
 						Hmm: "🤔"
 					}[react[0]]
-					x.append(draw_reaction(icon, react[1], react[0]==mine))
+					x.append(draw_reaction(icon, react[0], react[1], react[0]==mine))
 				}
 			}
 		}

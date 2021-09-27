@@ -216,6 +216,15 @@ class View {
 // todo: some way to alter the url during/after rendering
 
 let views = [
+	// 
+	new View(
+		['i', 'events', /^\d+$/],
+		(url) => query.moment(url.path[2]),
+		function([data1, data2]) {
+			let x = new Timeline(data2.timeline, data2.globalObjects)
+			scroll_add(x.elem)
+		}
+	),
 	// todo: log in screen to add new account
 	new View(
 		['account', 'add'],

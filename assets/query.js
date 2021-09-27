@@ -1,4 +1,5 @@
 // ugh all of these fields are required and none of them are really important
+// graphql api
 let query_junk = {
 	withTweetQuoteCount: true,
 	includePromotedContent: false,
@@ -8,6 +9,32 @@ let query_junk = {
 	withSuperFollowsUserFields: true,
 	withSuperFollowsTweetFields: true,
 	withUserResults: true,
+}
+
+// what the fuck are these parameters
+// v1.1 api
+let query_junk_2 = {
+	include_profile_interstitial_type: 1,
+	include_blocking: 1,
+	include_blocked_by: 1,
+	include_followed_by: 1,
+	include_want_retweets: 1,
+	include_mute_edge: 1,
+	include_can_dm: 1,
+	include_can_media_tag: 1,
+	skip_status: 1,
+	cards_platform: 'Web-12',
+	include_cards: 1,
+	include_ext_alt_text: true,
+	include_quote_count: true,
+	include_reply_count: 1,
+	tweet_mode: 'extended',
+	include_entities: true,
+	include_user_entities: true,
+	include_ext_media_color: true,
+	include_ext_media_availability: true,
+	send_error_codes: true,
+	simple_quoted_tweet: true,
 }
 	
 class Query {
@@ -61,19 +88,19 @@ class Query {
 	// get list of 'friends' that are following a user
 	friends_following(id) {
 		return this.get_v11('friends/following/list.json', {
-			include_profile_interstitial_type:1,
-			include_blocking:1,
-			include_blocked_by:1,
-			include_followed_by:1,
-			include_want_retweets:1,
-			include_mute_edge:1,
-			include_can_dm:1,
-			include_can_media_tag:1,
-			skip_status:1,
-			cursor:-1,
-			user_id:id,
-			count:3,
-			with_total_count:true,
+			include_profile_interstitial_type: 1,
+			include_blocking: 1,
+			include_blocked_by: 1,
+			include_followed_by: 1,
+			include_want_retweets: 1,
+			include_mute_edge: 1,
+			include_can_dm: 1,
+			include_can_media_tag: 1,
+			skip_status: 1,
+			cursor: -1,
+			user_id: id,
+			count: 3,
+			with_total_count: true,
 		})
 	}
 	
@@ -98,7 +125,6 @@ class Query {
 	async tweet(id) {
 		return await this.get_graphql('TweetDetail', {
 			focalTweetId: id,
-			
 			with_rux_injections: false,
 			withCommunity: false,
 			withBirdwatchNotes: false,
@@ -177,28 +203,8 @@ class Query {
 	// note: for some reason this does NOT fill in the 'ext' field!
 	notifications() {
 		return this.get_v2('notifications/all.json', {
-			// what the fuck are these parameters
-			include_profile_interstitial_type: 1,
-			include_blocking: 1,
-			include_blocked_by: 1,
-			include_followed_by: 1,
-			include_want_retweets: 1,
-			include_mute_edge: 1,
-			include_can_dm: 1,
-			include_can_media_tag: 1,
-			skip_status: 1,
-			cards_platform: 'Web-12',
-			include_cards: 1,
-			include_ext_alt_text: true,
-			include_quote_count: true,
-			include_reply_count: 1,
-			tweet_mode: 'extended',
-			include_entities: true,
-			include_user_entities: true,
-			include_ext_media_color: true,
-			include_ext_media_availability: true,
-			send_error_codes: true,
-			simple_quoted_tweet: true,
+
+			...query_junk_2,
 			count: 20,
 			ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo,ligma",
 		})
@@ -206,27 +212,7 @@ class Query {
 	
 	home(cursor) {
 		return this.get_v2('timeline/home.json', {
-			include_profile_interstitial_type: 1,
-			include_blocking: 1,
-			include_blocked_by: 1,
-			include_followed_by: 1,
-			include_want_retweets: 1,
-			include_mute_edge: 1,
-			include_can_dm: 1,
-			include_can_media_tag: 1,
-			skip_status: 1,
-			cards_platform: 'Web-12',
-			include_cards: 1,
-			include_ext_alt_text: true,
-			include_quote_count: true,
-			include_reply_count: 1,
-			tweet_mode: 'extended',
-			include_entities: true,
-			include_user_entities: true,
-			include_ext_media_color: true,
-			include_ext_media_availability: true,
-			send_error_codes: true,
-			simple_quoted_tweet: true,
+			...query_junk_2,
 			earned: 1,
 			count: 3,
 			lca: true,
@@ -240,27 +226,7 @@ class Query {
 	// return: raw response
 	search(string, cursor) {
 		return this.get_v2('search/adaptive.json', {
-			include_profile_interstitial_type: 1,
-			include_blocking: 1,
-			include_blocked_by: 1,
-			include_followed_by: 1,
-			include_want_retweets: 1,
-			include_mute_edge: 1,
-			include_can_dm: 1,
-			include_can_media_tag: 1,
-			skip_status: 1,
-			cards_platform: 'Web-12',
-			include_cards: 1,
-			include_ext_alt_text: true,
-			include_quote_count: true,
-			include_reply_count: 1,
-			tweet_mode: 'extended',
-			include_entities: true,
-			include_user_entities: true,
-			include_ext_media_color: true,
-			include_ext_media_availability: true,
-			send_error_codes: true,
-			simple_quoted_tweet: true,
+			...query_junk_2,
 			q: string,
 			count: 20,
 			query_source: '',
@@ -323,21 +289,6 @@ class Query {
 	// this returns all of your lists that contain `user_id`.
 	list_memberships(user_id) {
 		return this.get_v11('lists/memberships.json', {
-			include_profile_interstitial_type: 1,
-			include_blocking: 1,
-			include_blocked_by: 1,
-			include_followed_by: 1,
-			include_want_retweets: 1,
-			include_mute_edge: 1,
-			include_can_dm: 1,
-			include_can_media_tag: 1,
-			skip_status: 1,
-			cards_platform: 'Web-12',
-			include_cards: 1,
-			include_ext_alt_text: true,
-			include_quote_count: true,
-			include_reply_count: 1,
-			tweet_mode: 'extended',
 			cursor: -1,
 			user_id: user_id,
 			count: 1000,
@@ -367,5 +318,20 @@ class Query {
 		}*/
 	}
 	
-	//ConversationControlDelete
+	async moment(id) {
+		let r1 = this.get_v11('live_event/1/'+id+'/timeline.json', {
+			count: 20,
+			urt: true,
+		})
+		let r2 = this.get_v2('live_event/timeline/'+id+'.json', {
+			...query_junk_2,
+			timeline_id: 'recap',
+			count: 20,
+			ext: 'mediaStats,highlightedLabel,voiceInfo,superFollowMetadata,signalsReactionMetadata,signalsReactionPerspective',
+			urt: true,
+			get_annotations: true,
+		})
+		return [await r1, await r2]
+	}
+	
 }
