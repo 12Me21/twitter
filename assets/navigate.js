@@ -2,7 +2,7 @@ let auth
 let query
 let mutate
 let initial_pop
-let auth_app = new App()
+let auth_app
 let ready = false
 let buffered_location
 
@@ -24,14 +24,11 @@ async function swap_accounts(na) {
 	//await render_from_location()
 }
 
-let login_promise = auth_app.init().then(x=>{
-	auth = new Auth(auth_app)
-})
-
 // called when the page loads
 async function onload() {
-	await login_promise
-	
+	auth_app = new App()
+	await auth_app.init()
+	auth = new Auth(auth_app)
 	auth.init_auto()
 	
 	swap_accounts(auth)
@@ -219,7 +216,10 @@ let views = [
 	// 
 	new View(
 		['i', 'events', /^\d+$/],
-		(url) => query.moment(url.path[2]),
+		async (url) => {
+			let id = url.path[2]
+			return [await query.moment(id), await query.moment_tweets(null, id)]
+		},
 		function([data1, data2]) {
 			let x = new Timeline(data2.timeline, data2.globalObjects)
 			scroll_add(x.elem)
@@ -257,7 +257,7 @@ let views = [
 		async (url) => {
 			let user = await query.user(url.path[0])
 			if (user) {
-				let resp = await query.user_lists(user.id_str)
+				let resp = await query.user_lists(null, user.id_str)
 				return [user, resp.user.result.timeline.timeline]
 			} else {
 				return [user, null]
@@ -276,7 +276,7 @@ let views = [
 		async (url) => {
 			let params = new URLSearchParams(url.search)
 			let query = params.get('q')
-			return [query, await query.search(query)]
+			return [query, await query.search(null, query)]
 		},
 		function([query, resp]) {
 			let ids = template($SearchBox)
@@ -354,7 +354,7 @@ let views = [
 	// twitter.com/<name>/status/<id>
 	new View(
 		[/^@?\w+$/, 'status', /^\d+$/],
-		(url) => query.tweet(url.path[2]),
+		(url) => query.tweet(null, url.path[2]),
 		function(data) {
 			if (data && data.threaded_conversation_with_injections) {
 				let x = new Timeline(data.threaded_conversation_with_injections)
@@ -374,7 +374,7 @@ let views = [
 	// twitter.com/notifications
 	new View(
 		['notifications'],
-		(url) => query.notifications(),
+		(url) => query.notifications(null),
 		function(data) {
 			let x = new Timeline(data.timeline, data.globalObjects)
 			scroll_add(x.elem)
@@ -386,7 +386,7 @@ let views = [
 		async function(url) {
 			let user = await query.user(url.path[0])
 			if (user) {
-				let likes = await query.followers(user.id_str)
+				let likes = await query.followers(null, user.id_str)
 				return [user, likes.user.result.timeline.timeline]
 			} else {
 				return [user, null]
@@ -406,7 +406,7 @@ let views = [
 		async function(url) {
 			let user = await query.user(url.path[0])
 			if (user) {
-				let likes = await query.user_likes(user.id_str)
+				let likes = await query.user_likes(null, user.id_str)
 				return [user, likes.user.result.timeline.timeline]
 			} else {
 				return [user, null]
@@ -423,7 +423,7 @@ let views = [
 	// twitter.com/i/bookmarks
 	new View(
 		['i', 'bookmarks'],
-		(url) => query.bookmarks(),
+		(url) => query.bookmarks(null),
 		(data) => {
 			let x = new Timeline(data)
 			scroll_add(x.elem)
@@ -435,16 +435,16 @@ let views = [
 		async (url) => {
 			let user = await query.user(url.path[0])
 			if (user) {
-				let profile = await query.profile(user.id_str)
-				return [user, profile]
+				let resp = query.user_tweets(user.id_str)
+				return [user, resp, await resp.get()]
 			} else {
 				return [user, null]
 			}
 		},
-		(data) => {
-			scroll_add(draw_profile(data[0]))
-			if (data[1]) {
-				let x = new Timeline(data[1])
+		([user, resp, data]) => {
+			scroll_add(draw_profile(user))
+			if (data) {
+				let x = new Timeline(data[0], data[1], resp)
 				scroll_add(x.elem)
 			}
 		}

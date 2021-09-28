@@ -1,7 +1,8 @@
 class Timeline {
-	constructor(insts, objects) {
+	constructor(insts, objects, gen) {
 		let ids = template($Timeline)
 		this.elem = ids.main
+		this.gen = gen
 		this.add_instructions(insts, objects)
 	}
 	
@@ -29,9 +30,21 @@ class Timeline {
 			}
 		}
 	}
+
+	draw_cursor(cursor) {
+		let e = document.createElement('div')//draw_unknown("Cursor", cursor)
+		e.textContent = "heck"
+		console.log('cursor', this.gen)
+		let x = this
+		e.onclick = async ()=>{
+			let [i,o] = await x.gen.get(cursor.value)
+			x.add_instructions(i,o)
+		}
+		return e
+	}
 	
 	// an 'entry' contains 0 or more 'items', grouped together
-	static draw_entry(entry, objects) {
+	draw_entry(entry, objects) {
 		let elem = document.createElement('tl-entry')
 		elem.className
 		elem.dataset.order = entry.sortIndex
@@ -50,7 +63,7 @@ class Timeline {
 					elem.append(x)
 			} else if (content.operation) {
 				if (content.operation.cursor) {
-					elem.append(draw_cursor(content.operation.cursor))
+					elem.append(this.draw_cursor(content.operation.cursor))
 				} else
 					elem.textContent = "entry "+JSON.stringify(content)
 			} else {
@@ -69,7 +82,7 @@ class Timeline {
 						elem.append(x)
 				}
 			} else if (type=='TimelineTimelineCursor') {
-				elem.append(draw_unknown("Cursor", content))
+				elem.append(this.draw_cursor(content))
 			} else {
 				elem.append(draw_unknown("Entry: "+type, content))
 			}
@@ -84,7 +97,7 @@ class Timeline {
 	// `result`: the result field from a graphql response
 	// `objects`: an empty globalObjects table. will be written to (this is the primary output)
 	// return: the id of the tweet
-	static tweet_to_v2(result, objects) {
+	tweet_to_v2(result, objects) {
 		try {
 			if (!result || result.__typename=='TweetUnavailable') // this can happen when a user's pinned tweet has been deleted
 				return null
@@ -126,7 +139,7 @@ class Timeline {
 	}
 	
 	// an 'item' is a single tweet, or other widget, that appears in the timeline
-	static draw_item(item, objects) {
+	draw_item(item, objects) {
 		if (objects) {
 			let content = item.content
 			if (content.tweet) {
@@ -166,7 +179,7 @@ class Timeline {
 				let id = this.tweet_to_v2(content.tweet_results.result, objects)
 				return draw_tweet(id, objects)
 			} else if (type=='TimelineTimelineCursor') {
-				return draw_cursor(content)
+				return this.draw_cursor(content)
 			} else if (type=='TimelineTwitterList') {
 				return draw_list(content.list)
 			} else if (type=='TimelineUser') {
@@ -187,7 +200,7 @@ class Timeline {
 	add_entry(entry, objects) {
 		if (/promotedTweet-/y.test(entry.entryId))
 			return
-		let elem = this.constructor.draw_entry(entry, objects)
+		let elem = this.draw_entry(entry, objects)
 		if (!elem)
 			return
 		let after = null

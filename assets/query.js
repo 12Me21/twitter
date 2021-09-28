@@ -36,7 +36,28 @@ let query_junk_2 = {
 	send_error_codes: true,
 	simple_quoted_tweet: true,
 }
+
+class TimelineRequest {
+	#request //testing
+	#process
 	
+	constructor(request, process) {
+		this.#request = request
+		this.#process = process
+	}
+	// maybe the Query should be stored in this class somehow
+	async get(cursor) { // returns [timeline, objects]
+		let resp = await this.#request(cursor)
+		try {
+			// we catch all errors in .process since .process should just be like x => x.user.result
+			// i.e. we're just going to get errors when the response data was formatted unexpectedly
+			return [this.#process(resp)]
+		} catch (e) {
+			throw new ApiError(resp)
+		}
+	}
+}
+
 class Query {
 	constructor(auth) {
 		this.auth = auth
@@ -65,25 +86,18 @@ class Query {
 		}).then(x=>x.json())
 	}
 	
-	get_graphql(type, params) {
+	async get_graphql(type, params) {
 		let q = this.auth.app.querys[type]
-		return fetch(`https://twitter.com/i/api/graphql/${q}/${type}?variables=${encodeURIComponent(JSON.stringify(params))}`, {
+		let resp = await fetch(`https://twitter.com/i/api/graphql/${q}/${type}?variables=${encodeURIComponent(JSON.stringify(params))}`, {
 			headers: this.auth.auth_headers(),
 			signal: this.signal,
-		}).then(x=>x.json()).then(x=>x.data)
+		}).then(x=>x.json())
+		if (resp.errors && resp.errors.length)
+			throw new ApiError(resp)
+		return resp.data
 	}
 	
-	async more_replies(tweet_id, cursor) {
-		return await this.get_graphql('TweetDetail', {
-			focalTweetId: tweet_id,
-			cursor: cursor,
-			with_rux_injections: false,
-			withCommunity: false,
-			withBirdwatchNotes: false,
-			withVoice: false,
-			...query_junk,
-		})
-	}
+
 	
 	// get list of 'friends' that are following a user
 	friends_following(id) {
@@ -104,7 +118,7 @@ class Query {
 		})
 	}
 	
-	followers(id, cursor) {
+	followers(cursor, id) {
 		return this.get_graphql('Followers', {
 			userId: id,
 			count: 20,
@@ -113,7 +127,7 @@ class Query {
 		})
 	}
 	
-	following(id, cursor) {
+	following(cursor, id) {
 		return this.get_graphql('Following', {
 			userId: id,
 			count: 20,
@@ -122,17 +136,19 @@ class Query {
 		})
 	}
 	
-	async tweet(id) {
-		return await this.get_graphql('TweetDetail', {
+	tweet(cursor, id) {
+		return this.get_graphql('TweetDetail', {
 			focalTweetId: id,
 			with_rux_injections: false,
 			withCommunity: false,
 			withBirdwatchNotes: false,
+			cursor: cursor,
 			withVoice: false,
 			...query_junk,
 		})
 	}
-	
+
+	// single
 	user(name) {
 		if (name[0]=="@")
 			name = name.substr(1)
@@ -142,69 +158,63 @@ class Query {
 		}))
 	}
 	
-	async bookmarks(cursor) {
-		let resp = await this.get_graphql('Bookmarks', {
+	// single
+	translate_tweet(id) {
+		return this.get_v11(`strato/column/None/tweetId=${id},destinationLanguage=None,translationSource=Some(Google),feature=None,timeout=None,onlyCached=None/translation/service/translateTweet`)
+	}
+	
+	bookmarks(cursor) {
+		return this.get_graphql('Bookmarks', {
 			count: 20,
 			cursor: cursor,
 			withHighlightedLabel: false,
 			...query_junk,
 		})
-		return resp.bookmark_timeline.timeline
+		//return resp.bookmark_timeline.timeline
 	}
 	
-	// todo: look at the v2 api version of this
+	// todo: look at the v2 api version of this?
 	// https://developer.twitter.com/en/docs/twitter-api/tweets/timelines/api-reference/get-users-id-tweets
-	async profile(user_id, cursor) {
-		let resp = await this.get_graphql('UserTweets', {
-			userId: user_id,
-			count: 20,
-			cursor: cursor,
-			withVoice: true,
-			...query_junk,
-		})
-		if (resp.user.result.__typename=='User') {
-			let instructions = resp.user.result.timeline.timeline
-			return instructions
-		}
-		return null
+	user_tweets(user_id) {
+		// this returns a new TimelineRequest object, with the current parameters
+		// calling .get() returns the initial items
+		// or you can call .get(cursor) to pass a cursor
+		return new TimelineRequest(cursor =>
+			this.get_graphql('UserTweets', {
+				userId: user_id,
+				count: 20,
+				cursor: cursor,
+				withVoice: true,
+				...query_junk,
+			}),
+			resp => resp.user.result.timeline.timeline
+		)
 	}
-	
-	translate_tweet(id) {
-		return this.get_v11(`strato/column/None/tweetId=${id},destinationLanguage=None,translationSource=Some(Google),feature=None,timeout=None,onlyCached=None/translation/service/translateTweet`)
-	}
-	
-	//https://upload.twitter.com/i/media/upload.json
-	//https://upload.twitter.com/1.1/media/upload.json
-	//https://twitter.com/i/api/1.1/media/upload.json ??
-	
-	//https://upload.twitter.com/1.1/media/metadata/create.json
-	// https://twitter.com/i/api/1.1/media/metadata/create.json
-	
+
 	// list users who have liked (or used other reactions on) a tweet
 	// this does NOT support `cursor` for some reason. maybe we should be using Favoriters
-	reactors(id) {
+	reactors(cursor, id) {
 		return this.get_graphql('GetTweetReactionTimeline', {
 			tweetId: id,
 			withHighlightedLabel: true, withSuperFollowsUserFields: true
 		})
 	}
 	
-	user_likes(id, cursor) {
+	user_likes(cursor, id) {
 		return this.get_graphql('Likes', {
 			userId: id,
 			count: 20,
 			cursor: cursor,
-			
 			withHighlightedLabel: true,
 			...query_junk,
 		})
 	}
 	
 	// note: for some reason this does NOT fill in the 'ext' field!
-	notifications() {
+	notifications(cursor) {
 		return this.get_v2('notifications/all.json', {
-
 			...query_junk_2,
+			cursor: cursor,
 			count: 20,
 			ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo,ligma",
 		})
@@ -224,7 +234,7 @@ class Query {
 	// `string`: search query text
 	// `cursor`: (optional) cursor id
 	// return: raw response
-	search(string, cursor) {
+	search(cursor, string) {
 		return this.get_v2('search/adaptive.json', {
 			...query_junk_2,
 			q: string,
@@ -238,9 +248,10 @@ class Query {
 	}
 	
 	// get own lists
-	own_lists() {
+	own_lists(cursor) {
 		return this.get_graphql('ListsManagementPageTimeline', {
 			count: 100,
+			...cursor&&{cursor},
 			withSuperFollowsUserFields: true,
 			withUserResults: true,
 			withBirdwatchPivots: false,
@@ -250,17 +261,18 @@ class Query {
 		})
 	}
 	
-	user_lists(id) {
+	user_lists(cursor, id) {
 		return this.get_graphql('CombinedLists', {
 			userId: id,
 			count: 100,
+			...cursor&&{cursor},
 			withSuperFollowsUserFields:true,
 			withUserResults:true,withBirdwatchPivots:false,withReactionsMetadata:true,withReactionsPerspective:true,withSuperFollowsTweetFields:true,
 		})
 	}
 	
 	// this is used by the twitter.com/i/lists page
-	list(id) {
+	list(cursor, id) {
 		return this.get_graphql('ListLatestTweetsTimeline', {
 			listId: id,
 			count: 20,
@@ -270,7 +282,7 @@ class Query {
 	//this is used when you click "add to lists" on a user's profile
 	// which for some reason has the url: https://mobile.twitter.com/i/lists/add_member (does not contain the user's name? so idk what the UI for this one looked like originally)
 	// returns all of your lists.
-	list_ownerships(my_id, user_id) {
+	list_ownerships(cursor, my_id, user_id) {
 		return this.get_graphql('ListOwnerships', {
 			userId: my_id,
 			isListMemberTargetUserId: user_id,
@@ -318,20 +330,25 @@ class Query {
 		}*/
 	}
 	
-	async moment(id) {
-		let r1 = this.get_v11('live_event/1/'+id+'/timeline.json', {
-			count: 20,
+	// single
+	moment(id) {
+		return this.get_v11('live_event/1/'+id+'/timeline.json', {
+			count: 0,
 			urt: true,
 		})
-		let r2 = this.get_v2('live_event/timeline/'+id+'.json', {
+	}
+	
+	moment_tweets(cursor, id) {
+		return this.get_v2('live_event/timeline/'+id+'.json', {
 			...query_junk_2,
 			timeline_id: 'recap',
 			count: 20,
 			ext: 'mediaStats,highlightedLabel,voiceInfo,superFollowMetadata,signalsReactionMetadata,signalsReactionPerspective',
+			cursor: cursor,
 			urt: true,
 			get_annotations: true,
 		})
-		return [await r1, await r2]
+		// return [resp.whatever.timeline, cursor=>this.moment_tweets(cursor, id)]
 	}
 	
 }

@@ -195,10 +195,6 @@ function format_date(date) {
 	  return Math.round(seconds) + " seconds ago"*/
 }
 
-function draw_cursor(cursor) {
-	return draw_unknown("Cursor", cursor)
-}
-
 function draw_notification(notif) {
 	let elem = document.createElement('div')
 	elem.textContent = notif.message.text

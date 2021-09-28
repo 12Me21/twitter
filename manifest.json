@@ -22,7 +22,7 @@
 		,"css": ["inject.css"]
 		,"js": ["inject.js"]
 	}]
-	,"web_accessible_resources": ["assets/*"]
+	,"web_accessible_resources": ["assets/*", "fonts/*"]
 	,"background": {
 		"scripts": ["cookies.js"]
 	}

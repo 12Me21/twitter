@@ -35,7 +35,7 @@ html {
 }
 
 .Col:not(.flex-wrap) > .grow {
-	height: 0;
+	/*height: 0;*/
 }
 
 .Row:not(.flex-wrap) > .grow {

@@ -5,8 +5,12 @@
 }
 
 html {
-	font-family: roboto, sans-serif, twemoji, twitma;
+	font-family: roboto, noto-sans, twemoji, twitma;
 	line-height: 1.15;
+}
+
+*:not(#a#b) {
+	font-family: roboto, noto-sans, twemoji, twitma;
 }
 
 #\$sidebar {
@@ -75,7 +79,6 @@ tl-profile {
 .contents {
 	margin: 0.4rem;
 	/*border: 2px inset silver;*/
-	max-width: 5in;
 }
 
 tl-tweet .contents > * {

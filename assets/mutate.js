@@ -43,7 +43,7 @@ class Mutate {
 			signal: this.signal,
 		})
 		let data = await resp.json()
-		if (x.ok)
+		if (resp.ok)
 			return data
 		throw new ApiError(data)
 		// ex: 
