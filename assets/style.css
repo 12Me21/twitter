@@ -9,7 +9,7 @@ html {
 	line-height: 1.15;
 }
 
-*:not(#a#b) {
+* {
 	font-family: roboto, noto-sans, twemoji, twitma;
 }
 
@@ -212,4 +212,13 @@ image-viewer > img {
 	object-fit: contain;
 	width: 0;
 	flex-grow: 1;
+}
+
+tl-entry {
+	border: 10px inset pink;
+}
+
+
+a {
+	background-image: url("chrome-extension://__MSG_@@extension_id__/assets/dither.png");
 }

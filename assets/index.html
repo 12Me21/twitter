@@ -69,7 +69,7 @@ document.body.innerHTML = `
 <template id=$MediaPicture>
 	<media-item data-id=main class='Col'>
 		<img data-id=image class='grow' decoding=async loading=lazy>
-		<a data-id=link>Download</a>
+<!--		<a data-id=link>Download</a>-->
 	</media-item>
 </template>
 
@@ -147,15 +147,14 @@ document.body.innerHTML = `
 		<L- data-id=note class='Row align flex-wrap things'></L->
 		<L- class='Row'>
 			<L- data-id=reply_label></L->
-			<L- class='Col'>
-				<a data-id=avatar_link><img class='avatar' data-id=avatar width=73 height=73></a>
-				<a data-id=tweet_link><L->goto</L-></a>
-			</L->
+			<a class='Col' data-id=tweet_link>
+				<img class='avatar' data-id=avatar width=73 height=73>
+			</a>
 			<L- class='Col grow'>
-				<L- class='Row tweet-header align flex-wrap things'>
+				<a class='Row tweet-header align flex-wrap things' data-id=user_link>
 					<br data-id=user_names>
 					<time data-id=time class='pre grow right-align'></time>
-				</L->
+				</a>
 				<tweet-contents class='contents grow' data-id=contents></tweet-contents>
 				<button data-id=translate_button>translate</button>
 				<div class='pre contents' data-id=translated_contents></div>
@@ -191,13 +190,21 @@ document.body.innerHTML = `
 					</L->
 					<L- class='Row flex-wrap things'>
 						<L->followers: <span data-id=follower_count class='pre'></span></L->
-						<L->tweets: <span data-id=tweet_count class='pre'></span></L->
+						<button data-id=follow_button></button>
+						<L- data-id=follow_note></L->
 					</L->
+					<L- class='Row flex-wrap things'>
+						<L->tweets: <span data-id=tweet_count class='pre'></span></L->
+					</l->
 				</L->
 			</L->
 		</L->
 		<L- data-id=bar>.</L->
 	</tl-profile>
+</template>
+
+<template id=$Cursor>
+	<tl-cursor data-id=main>[MORE]</tl-cursor>
 </template>
 
 `

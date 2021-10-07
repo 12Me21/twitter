@@ -1,3 +1,7 @@
+function defer() {
+	return new Promise(r => setTimeout(r,0))
+}
+
 let auth
 let query
 let mutate
@@ -5,6 +9,8 @@ let initial_pop
 let auth_app
 let ready = false
 let buffered_location
+
+// todo: loading indicator when requesting more of a timeline
 
 // never assign to `auth` directly. use this function to switch the "current" account instead
 async function swap_accounts(na) {
@@ -81,6 +87,28 @@ click_actions = [
 		elem => elem instanceof HTMLAnchorElement && elem.origin==window.location.origin && !elem.download,
 		function(elem) {
 			go_to(elem.href)
+		}
+	),
+	new ClickAction(
+		elem => elem.tagName=='TL-CURSOR',
+		async function(elem) {
+			let t = elem.x_timeline
+			// todo: disable while loading
+			let [i,o] = await t.gen.get(elem.dataset.cursor)
+			t.add_instructions(i,o)
+			elem.remove()
+		},
+	),
+	new ClickAction(
+		elem => elem instanceof HTMLImageElement && elem.dataset.big_src,
+		async function(elem) {
+			$gallery_image.src = elem.src
+			$gallery_image.width = elem.dataset.orig_w
+			$gallery_image.height = elem.dataset.orig_w
+			//$gallery_image.style.backgroundColor = elem.style.backgroundColor
+			$image_viewer.hidden = false
+			await defer()
+			$gallery_image.src = elem.dataset.big_src
 		}
 	),
 	new ClickAction(
@@ -354,12 +382,13 @@ let views = [
 	// twitter.com/<name>/status/<id>
 	new View(
 		[/^@?\w+$/, 'status', /^\d+$/],
-		(url) => query.tweet(null, url.path[2]),
-		function(data) {
-			if (data && data.threaded_conversation_with_injections) {
-				let x = new Timeline(data.threaded_conversation_with_injections)
-				scroll_add(x.elem)
-			}
+		async (url) => {
+			let r = query.tweet(url.path[2])
+			return [r, await r.get()]
+		},
+		function([r, data]) {
+			let x = new Timeline(data[0], data[1], r)
+			scroll_add(x.elem)
 		}
 	),
 	// twitter.com/home
@@ -421,28 +450,42 @@ let views = [
 		}
 	),
 	// twitter.com/i/bookmarks
+	// need to smoothen the process of
+	// - <query request function>
+	// - enclosed in a TimelineRequest instance
+	// - rendered as a Timeline
 	new View(
 		['i', 'bookmarks'],
-		(url) => query.bookmarks(null),
-		(data) => {
-			let x = new Timeline(data)
+		async (url) => {
+			let r = query.bookmarks()
+			return [r, await r.get()]
+		},
+		([tr, data]) => {
+			let x = new Timeline(data[0], data[1], tr)
 			scroll_add(x.elem)
-		}
+		},
 	),
 	// twitter.com/<name>
+	// todo: a lot of pages rely on requesting user info
+	// this should be, perhaps, cached, and
+	// we definitely need to clean up this code
 	new View(
 		[/^@?\w+$/],
 		async (url) => {
 			let user = await query.user(url.path[0])
 			if (user) {
 				let resp = query.user_tweets(user.id_str)
-				return [user, resp, await resp.get()]
+				let resp2 = query.friends_following(user.id_str)
+				return [user, resp, await resp.get(), await resp2]
 			} else {
 				return [user, null]
 			}
 		},
-		([user, resp, data]) => {
+		([user, resp, data, followo]) => {
 			scroll_add(draw_profile(user))
+			if (followo) {
+				console.log("friends:", followo)
+			}
 			if (data) {
 				let x = new Timeline(data[0], data[1], resp)
 				scroll_add(x.elem)

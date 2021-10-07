@@ -100,7 +100,7 @@ class Query {
 
 	
 	// get list of 'friends' that are following a user
-	friends_following(id) {
+	friends_following(id, count) {
 		return this.get_v11('friends/following/list.json', {
 			include_profile_interstitial_type: 1,
 			include_blocking: 1,
@@ -113,7 +113,7 @@ class Query {
 			skip_status: 1,
 			cursor: -1,
 			user_id: id,
-			count: 3,
+			count: count || 3,
 			with_total_count: true,
 		})
 	}
@@ -136,16 +136,19 @@ class Query {
 		})
 	}
 	
-	tweet(cursor, id) {
-		return this.get_graphql('TweetDetail', {
-			focalTweetId: id,
-			with_rux_injections: false,
-			withCommunity: false,
-			withBirdwatchNotes: false,
-			cursor: cursor,
-			withVoice: false,
-			...query_junk,
-		})
+	tweet(id) {
+		return new TimelineRequest(cursor => 
+			this.get_graphql('TweetDetail', {
+				focalTweetId: id,
+				with_rux_injections: false,
+				withCommunity: false,
+				withBirdwatchNotes: false,
+				cursor: cursor,
+				withVoice: false,
+				...query_junk,
+			}),
+			resp => resp.threaded_conversation_with_injections,
+		)
 	}
 
 	// single
@@ -164,13 +167,15 @@ class Query {
 	}
 	
 	bookmarks(cursor) {
-		return this.get_graphql('Bookmarks', {
-			count: 20,
-			cursor: cursor,
-			withHighlightedLabel: false,
-			...query_junk,
-		})
-		//return resp.bookmark_timeline.timeline
+		return new TimelineRequest(cursor => 
+			this.get_graphql('Bookmarks', {
+				count: 20,
+				...cursor&&{cursor},
+				withHighlightedLabel: false,
+				...query_junk,
+			}),
+			resp => resp.bookmark_timeline.timeline,
+		)
 	}
 	
 	// todo: look at the v2 api version of this?
@@ -214,7 +219,7 @@ class Query {
 	notifications(cursor) {
 		return this.get_v2('notifications/all.json', {
 			...query_junk_2,
-			cursor: cursor,
+			...cursor&&{cursor},
 			count: 20,
 			ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo,ligma",
 		})

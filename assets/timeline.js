@@ -13,7 +13,7 @@ class Timeline {
 					for (let entry of inst.addEntries.entries)
 						this.add_entry(entry, objects)
 				} else {
-					this.add_elem(draw_unknown("Instruction", inst))
+					this.add_elem(draw_unknown("? Instruction", inst))
 				}
 			}				
 		} else { // graphql format
@@ -24,23 +24,21 @@ class Timeline {
 						this.add_entry(entry)
 				} else if (type=='TimelinePinEntry') {
 					this.add_entry(inst.entry)
+				} else if (type=='TimelineAddToModule') {
+					this.add_to_entry(inst.moduleEntryId, inst.moduleItems)
+					// todo: check `prepend`
 				} else {
-					this.add_elem(draw_unknown("Instruction", inst))
+					this.add_elem(draw_unknown("? Instruction", inst))
 				}
 			}
 		}
 	}
 
 	draw_cursor(cursor) {
-		let e = document.createElement('div')//draw_unknown("Cursor", cursor)
-		e.textContent = "heck"
-		console.log('cursor', this.gen)
-		let x = this
-		e.onclick = async ()=>{
-			let [i,o] = await x.gen.get(cursor.value)
-			x.add_instructions(i,o)
-		}
-		return e
+		let ids = template($Cursor)
+		ids.main.dataset.cursor = cursor.value
+		ids.main.x_timeline = this
+		return ids.main
 	}
 	
 	// an 'entry' contains 0 or more 'items', grouped together
@@ -48,6 +46,7 @@ class Timeline {
 		let elem = document.createElement('tl-entry')
 		elem.className
 		elem.dataset.order = entry.sortIndex
+		elem.dataset.id = entry.entryId
 		let content = entry.content
 		
 		if (objects) { //new format
@@ -75,6 +74,8 @@ class Timeline {
 				let x = this.draw_item(content)
 				if (x)
 					elem.append(x)
+				// todo: so it seems like there's a distinction between "items" vs "modules"
+				// where modules are used for like, replies, and can contain multiple tweets and have stuff added to them.
 			} else if (type=='TimelineTimelineModule') {
 				for (let item of content.items) {
 					let x = this.draw_item(item.item)
@@ -140,61 +141,79 @@ class Timeline {
 	
 	// an 'item' is a single tweet, or other widget, that appears in the timeline
 	draw_item(item, objects) {
-		if (objects) {
-			let content = item.content
-			if (content.tweet) {
-				if (content.tweet.promotedMetadata)
-					return null
-				let elem = draw_tweet(content.tweet.id, objects)
-				let sc = content.tweet.socialContext
-				// todo: draw_context_label function
-				if (sc) {
-					if (sc.generalContext) {
-						let x = document.createElement('div')
-						x.append(sc.generalContext.text)
-						x.append(elem)
-						return x
-					} else if (sc.topicContext) {
-						let t = objects.topics[sc.topicContext.topicId]
-						if (t) {
+		try {
+			if (objects) {
+				let content = item.content
+				if (content.tweet) {
+					if (content.tweet.promotedMetadata)
+						return null
+					let elem = draw_tweet(content.tweet.id, objects)
+					let sc = content.tweet.socialContext
+					// todo: draw_context_label function
+					if (sc) {
+						if (sc.generalContext) {
 							let x = document.createElement('div')
-							x.append("Topic: "+t.name)
+							x.append(sc.generalContext.text)
 							x.append(elem)
 							return x
+						} else if (sc.topicContext) {
+							let t = objects.topics[sc.topicContext.topicId]
+							if (t) {
+								let x = document.createElement('div')
+								x.append("Topic: "+t.name)
+								x.append(elem)
+								return x
+							}
 						}
 					}
+					return elem
+				} else if (content.notification) {
+					return draw_notification(objects.notifications[content.notification.id])
 				}
-				return elem
-			} else if (content.notification) {
-				return draw_notification(objects.notifications[content.notification.id])
+				return draw_unknown("Item", content)
+			} else {
+				let content = item.itemContent
+				let type = content.itemType
+				
+				if (type=='TimelineTweet') {
+					let result = content.tweet_results.result
+					let objects = {tweets:{}, users:{}, topics:{}}// todo: fill more?
+					let id = this.tweet_to_v2(content.tweet_results.result, objects)
+					return draw_tweet(id, objects)
+				} else if (type=='TimelineTimelineCursor') {
+					return this.draw_cursor(content)
+				} else if (type=='TimelineTwitterList') {
+					return draw_list(content.list)
+				} else if (type=='TimelineUser') {
+					return null
+					//console.log(content)
+					//return draw_user(content.user_results.result.legacy)
+				} else if (type=='TimelineTopic') {
+					return null
+				}
+				return draw_unknown("Item", content)
 			}
-			return draw_unknown("Item", content)
-		} else {
-			let content = item.itemContent
-			let type = content.itemType
-			
-			if (type=='TimelineTweet') {
-				let result = content.tweet_results.result
-				let objects = {tweets:{}, users:{}, topics:{}}// todo: fill more?
-				let id = this.tweet_to_v2(content.tweet_results.result, objects)
-				return draw_tweet(id, objects)
-			} else if (type=='TimelineTimelineCursor') {
-				return this.draw_cursor(content)
-			} else if (type=='TimelineTwitterList') {
-				return draw_list(content.list)
-			} else if (type=='TimelineUser') {
-				return null
-				//console.log(content)
-				//return draw_user(content.user_results.result.legacy)
-			} else if (type=='TimelineTopic') {
-				return null
-			}
-			return draw_unknown("Item", content)
+		} catch (e) {
+			console.error(e)
+			return draw_unknown("Item Error", item)
 		}
 	}
 	
 	add_elem(elem) {
 		this.elem.append(elem)
+	}
+	
+	add_to_entry(id, list, objects) {
+		for (let child of this.elem.children) {
+			if (child.dataset.id==id) {
+				for (let x of list) {
+					// todo: prevent inserting duplicate items
+					child.append(this.draw_item(x.item, objects))
+				}
+				return true
+			}
+		}
+		return false
 	}
 	
 	add_entry(entry, objects) {
@@ -205,6 +224,7 @@ class Timeline {
 			return
 		let after = null
 		// todo: reverse the search I guess, since most items get inserted at the bottom
+		// todo: prevent duplicate
 		for (let child of this.elem.children) {
 			if (child.dataset.order < elem.dataset.order) {
 				after = child

@@ -10,6 +10,13 @@ function template(t) {
 	return ids
 }
 
+function profile_url(username) {
+	// prepend @ if the name collides with another page
+	if (/^(login|logout|home|i|compose|notifications|search|account)$/.test(username))
+		username = "@"+username
+	return "https://twitter.com/"+username
+}
+
 function unescape_html(text) {
 	return text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
 }
@@ -27,7 +34,7 @@ function draw_media(value, name) {
 		return draw_image(value, name)
 	} else if (value.type=='video') {
 		// todo: find the right variant
-		return draw_video(value.video_info.variants[0].url, value.media_url_https)
+		return draw_video(value.video_info.variants[1].url, value.media_url_https)
 	} else if (value.type=='animated_gif') {
 		return draw_video(value.video_info.variants[0].url, value.media_url_https)
 	} else {
@@ -136,29 +143,50 @@ async function download_link_onclick(e) {
 	},0)
 }
 
-function image_onclick(e) {
-	$gallery_image.src = e.target.src
-	$image_viewer.hidden = false
-}
-
 function draw_image(media, name) {
 	let url = media.media_url_https
 	let {'1': base, '2': ext} = url.match(/^(.*)\.(.*?)$/)
 	let ids = template($MediaPicture)
-	ids.image.src = url
+	ids.image.src = `${base}?format=${ext}&name=small`
 	ids.image.alt = media.ext_alt_text
-	ids.image.width = media.sizes.medium.w
-	ids.image.height = media.sizes.medium.h
-	ids.link.href = `${base}?format=${ext}&name=orig`
+	ids.image.width = media.sizes.small.w
+	ids.image.height = media.sizes.small.h
+	/*let srcset = []
+*/
+	ids.image.dataset.big_src = `${base}?format=${ext}&name=orig`
+	ids.image.dataset.orig_w = media.original_info.width
+	ids.image.dataset.orig_h = media.original_info.height
+	
+	console.log(media)
+	/*ids.link.href = `${base}?format=${ext}&name=orig`
 	ids.link.download = name+"."+ext
-	ids.link.onclick = download_link_onclick
+	ids.link.onclick = download_link_onclick*/
 	if (media.ext_media_color) {
 		let col = media.ext_media_color.palette[0].rgb
 		ids.image.style.backgroundColor = `rgb(${col.red},${col.green},${col.blue})`
 	}
-	ids.image.onclick = image_onclick
+	
+	//ids.image.onclick = image_onclick
 	return ids.main
 }
+
+/*function pick_size(media) {
+	let sizes = [
+		['tiny', 64],
+		['120x120', 120],
+		['240x240', 240],
+		['360x360', 360],
+		['900x900', 900],
+	]
+	for (let size of sizes) {
+		size[2] = size[1]
+	}
+	for (let size in media.sizes) {
+		let info = media.sizes[size]
+		if (info.resize=='fit')
+			sizes.push(size, )
+	}	
+}*/
 
 function draw_video(url, thumbnail) {
 	let ids = template($MediaVideo)
@@ -262,13 +290,15 @@ function draw_unknown(title, data) {
 	return ids.main
 }
 
-function draw_names(user) {
+function draw_names(user, no_link) {
 	let ids = template($Usernames)
 	ids.name.textContent = unescape_html(user.name)
 	ids.username.textContent = "@"+user.screen_name
-	let profile = "https://twitter.com/@"+user.screen_name
-	make_link(ids.name_link, profile)
-	make_link(ids.username_link, profile)
+	let profile = profile_url(user.screen_name)
+	if (!no_link) {
+		make_link(ids.name_link, profile)
+		make_link(ids.username_link, profile)
+	}
 	return ids.$
 }
 
@@ -293,7 +323,7 @@ function draw_user(user) {
 	ids.avatar.src = user.profile_image_url_https
 	let col = user.profile_image_extensions.mediaColor.r.ok.palette[0].rgb
 	ids.avatar.style.backgroundColor = `rgb(${col.red},${col.green},${col.blue})`
-	make_link(ids.avatar_link, "https://twitter.com/@"+user.screen_name)
+	make_link(ids.avatar_link, profile_url(user.screen_name))
 	return ids.main
 }
 
@@ -302,97 +332,92 @@ function draw_user(user) {
 
 // idea: maybe put like/rt/reply count under avtaar?
 function draw_tweet(id, objects) {
-	try {
-		let tweet = objects.tweets[id]
-		if (!tweet) {
-			return template($MissingTweet).main
-		}
-		let ids = template($Tweet)
-		
-		ids.main.dataset.id = tweet.id_str
-		// if this is a retweet, replace it with the original tweet and add a note
-		if (tweet.retweeted_status_id_str) {
-			let retweeter = objects.users[tweet.user_id_str]
-			tweet = objects.tweets[tweet.retweeted_status_id_str]
-			ids.note.append("Retweeted by ")
-			ids.note.append(draw_names(retweeter))
-			ids.main.dataset.rt_id = tweet.id_str
-		} else {
-			ids.note.remove()
-		}
-		
-		if (tweet.in_reply_to_status_id_str) {
-			ids.reply_label.textContent = "R"
-		}
-		
-		let user = objects.users[tweet.user_id_str]
-		
-		ids.time.textContent = format_date(new Date(tweet.created_at))
-		// user stuff
-		let username = "missingno" // fallback
-		username = user.screen_name
-		ids.avatar.src = user.profile_image_url_https.replace("_normal", "_bigger")
-		//let col = user.profile_image_extensions.mediaColor.r.ok.palette[0].rgb
-		//ids.avatar.style.backgroundColor = `rgb(${col.red},${col.green},${col.blue})`
-		make_link(ids.avatar_link, "https://twitter.com/@"+user.screen_name)
-		ids.user_names.replaceWith(draw_names(user))
-		
-		make_link(ids.tweet_link, `https://twitter.com/@${username}/status/${tweet.id_str}`)
-		
-		// [translate] button
-		if (tweet.lang!='en') { // todo: check user's native lang
-			let tc = ids.translated_contents
-			ids.translate_button.onclick = async function() {
-				let json = await query.translate_tweet(tweet.id_str)
-				tc.replaceChildren(format_text(json.translation, json.entities))
-			}
-		} else {
-			ids.translate_button.remove()
-			ids.translated_contents.remove()
-		}
-		
-		ids.contents.replaceChildren(format_text(tweet.full_text, tweet.entities, tweet.extended_entities, tweet.display_text_range, tweet, user))
-		// if this is a quote retweet, render the quoted tweet
-		if (tweet.quoted_status_id_str) {
-			ids.contents.append(draw_tweet(tweet.quoted_status_id_str, objects))
-		}
-		// regular interaction counts 
-		let x = document.createDocumentFragment()
-		x.append(draw_reaction("🔁", 'retweet', tweet.retweet_count, tweet.retweeted))
-		x.append(draw_reaction("Q", 'quote', tweet.quote_count))
-		x.append(draw_reaction("R", 'reply', tweet.reply_count))
-		x.append(draw_reaction("💙", 'like', tweet.favorite_count, tweet.favorited))
-		// draw reactions (secret)
-		if (tweet.ext && tweet.ext.signalsReactionMetadata) {
-			if (!auth.guest) {
-				let mine = tweet.ext.signalsReactionPerspective.r.ok.reactionType
-				for (let react of tweet.ext.signalsReactionMetadata.r.ok.reactionTypeMap) {
-					let icon = {
-						Cheer: "🎉",
-						Like: "👍",
-						Sad: "😢",
-						Haha: "(lol)", // can't find a decent icon that stands out. these probably need to be color coded so it's easier to tell the faces apart.
-						Hmm: "🤔"
-					}[react[0]]
-					x.append(draw_reaction(icon, react[0], react[1], react[0]==mine))
-				}
-			}
-		}
-		x.append(draw_reaction("🔖", 'bookmark', undefined))
-		ids.reactions.replaceWith(x)
-		// todo: gear icon should display a list of like
-		// pin, bookmark, delete, etc.
-		
-		if (tweet.card) {
-			let card = draw_card(tweet.card)
-			ids.contents.append(card)
-		}
-		
-		return ids.main
-	} catch (e) {
-		console.error("error drawing tweet", e)
+	let tweet = objects.tweets[id]
+	if (!tweet) {
 		return template($MissingTweet).main
 	}
+	let ids = template($Tweet)
+	
+	ids.main.dataset.id = tweet.id_str
+	// if this is a retweet, replace it with the original tweet and add a note
+	if (tweet.retweeted_status_id_str) {
+		let retweeter = objects.users[tweet.user_id_str]
+		tweet = objects.tweets[tweet.retweeted_status_id_str]
+		ids.note.append("Retweeted by ")
+		ids.note.append(draw_names(retweeter))
+		ids.main.dataset.rt_id = tweet.id_str
+	} else {
+		ids.note.remove()
+	}
+	
+	if (tweet.in_reply_to_status_id_str) {
+		ids.reply_label.textContent = "R"
+	}
+	
+	let user = objects.users[tweet.user_id_str]
+	
+	ids.time.textContent = format_date(new Date(tweet.created_at))
+	// user stuff
+	let username = "missingno" // fallback
+	username = user.screen_name
+	ids.avatar.src = user.profile_image_url_https.replace("_normal", "_bigger")
+	//let col = user.profile_image_extensions.mediaColor.r.ok.palette[0].rgb
+	//ids.avatar.style.backgroundColor = `rgb(${col.red},${col.green},${col.blue})`
+	make_link(ids.user_link, profile_url(user.screen_name))
+	ids.user_names.replaceWith(draw_names(user, true))
+	
+	make_link(ids.tweet_link, profile_url(user.screen_name)+`/status/${tweet.id_str}`)
+	
+	// [translate] button
+	if (tweet.lang!='en' && tweet.lang!='und') { // todo: check user's native lang
+		let tc = ids.translated_contents
+		ids.translate_button.onclick = async function() {
+			let json = await query.translate_tweet(tweet.id_str)
+			tc.replaceChildren(format_text(json.translation, json.entities))
+		}
+	} else {
+		ids.translate_button.remove()
+		ids.translated_contents.remove()
+	}
+	
+	ids.contents.replaceChildren(format_text(tweet.full_text, tweet.entities, tweet.extended_entities, tweet.display_text_range, tweet, user))
+	// if this is a quote retweet, render the quoted tweet
+	if (tweet.quoted_status_id_str) {
+		ids.contents.append(draw_tweet(tweet.quoted_status_id_str, objects))
+	}
+	// regular interaction counts 
+	let x = document.createDocumentFragment()
+	x.append(draw_reaction("🔁", 'retweet', tweet.retweet_count, tweet.retweeted))
+	x.append(draw_reaction("Q", 'quote', tweet.quote_count))
+	x.append(draw_reaction("R", 'reply', tweet.reply_count))
+	x.append(draw_reaction("💙", 'like', tweet.favorite_count, tweet.favorited))
+	// draw reactions (secret)
+	if (tweet.ext && tweet.ext.signalsReactionMetadata) {
+		if (!auth.guest) {
+			let mine = tweet.ext.signalsReactionPerspective.r.ok.reactionType
+			for (let react of tweet.ext.signalsReactionMetadata.r.ok.reactionTypeMap) {
+				let icon = {
+					Cheer: "🎉",
+					Like: "👍",
+					Sad: "😢",
+					Haha: "(lol)", // can't find a decent icon that stands out. these probably need to be color coded so it's easier to tell the faces apart.
+					Hmm: "🤔"
+				}[react[0]]
+				x.append(draw_reaction(icon, react[0], react[1], react[0]==mine))
+			}
+		}
+	}
+	x.append(draw_reaction("🔖", 'bookmark', undefined))
+	ids.reactions.replaceWith(x)
+	// todo: gear icon should display a list of like
+	// pin, bookmark, delete, etc.
+	
+	if (tweet.card) {
+		let card = draw_card(tweet.card)
+		ids.contents.append(card)
+	}
+	
+	return ids.main
 }
 
 function draw_profile(user) {
@@ -406,14 +431,26 @@ function draw_profile(user) {
 		}
 		
 		ids.avatar.src = user.profile_image_url_https.replace('_normal', '')
+		ids.avatar.dataset.big_src = ids.avatar.src
+		
 		ids.names.replaceWith(draw_names(user))
 		ids.bio.append(format_text(user.description, user.entities.description, null, null, null, user))
-		ids.website.append(format_text(user.url, user.entities.url, null, null, null, user))
-		ids.location.textContent = user.location
+		if (user.url)
+			ids.website.append(format_text(user.url, user.entities.url, null, null, null, user))
+		else 
+			ids.website.parentNode.remove()
+		if (user.location)
+			ids.location.textContent = user.location
+		else
+			ids.location.parentNode.remove()
 		ids.joined.textContent = format_date(new Date(user.created_at))
-		
+		//console.log('draw profile', user)
 		ids.follower_count.textContent = user.normal_followers_count
 		ids.tweet_count.textContent = user.statuses_count
+		
+		ids.follow_button.textContent = ["not following", "following"][user.following?1:0]//[["not following", "follows you"],["following", "mutual"]][user.following?1:0][user.followed_by?1:0]
+		if (user.followed_by)
+			ids.follow_note.textContent = "follows you"
 		
 		if (user.profile_link_color!='1DA1F2') {
 			ids.bar.style.backgroundColor = "#"+user.profile_link_color
