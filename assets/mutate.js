@@ -1,3 +1,7 @@
+// todo:
+// a lot of functions take id strings, which must be strings because they are 64 bit numbers which lose precision when converted to doubles
+// so, perhaps these functions should throw an error if a number is passed just in case
+
 // oops why is this in this file
 Promise.prototype.trap = function(type, a2, a3) {
 	if (a3) {

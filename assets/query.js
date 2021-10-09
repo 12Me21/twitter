@@ -53,6 +53,8 @@ class TimelineRequest {
 			// i.e. we're just going to get errors when the response data was formatted unexpectedly
 			return [this.#process(resp)]
 		} catch (e) {
+			// this shouldn't be an api error, or at least not the same type
+			// the error is due to unexpected formatting of the response data, mm
 			throw new ApiError(resp)
 		}
 	}

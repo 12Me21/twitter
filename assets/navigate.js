@@ -32,6 +32,8 @@ async function swap_accounts(na) {
 
 // called when the page loads
 async function onload() {
+	$gallery_download.onclick = download_link_onclick
+	
 	auth_app = new App()
 	await auth_app.init()
 	auth = new Auth(auth_app)
@@ -102,6 +104,9 @@ click_actions = [
 	new ClickAction(
 		elem => elem instanceof HTMLImageElement && elem.dataset.big_src,
 		async function(elem) {
+			$gallery_download.href = elem.dataset.big_src
+			$gallery_download.download = elem.dataset.filename
+			
 			$gallery_image.src = elem.src
 			$gallery_image.width = elem.dataset.orig_w
 			$gallery_image.height = elem.dataset.orig_w

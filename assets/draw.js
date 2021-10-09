@@ -127,6 +127,8 @@ async function download_link_onclick(e) {
 	e.preventDefault()
 	let link = e.target
 	let url = link.href
+	if (!url)
+		return
 	link.disabled = true
 	// download file and create object url
 	let blob = await fetch(url).then(x=>x.blob())
@@ -156,6 +158,7 @@ function draw_image(media, name) {
 	ids.image.dataset.big_src = `${base}?format=${ext}&name=orig`
 	ids.image.dataset.orig_w = media.original_info.width
 	ids.image.dataset.orig_h = media.original_info.height
+	ids.image.dataset.filename = name
 	
 	console.log(media)
 	/*ids.link.href = `${base}?format=${ext}&name=orig`
@@ -294,11 +297,11 @@ function draw_names(user, no_link) {
 	let ids = template($Usernames)
 	ids.name.textContent = unescape_html(user.name)
 	ids.username.textContent = "@"+user.screen_name
-	let profile = profile_url(user.screen_name)
-	if (!no_link) {
+	//let profile = profile_url(user.screen_name)
+	/*if (!no_link) {
 		make_link(ids.name_link, profile)
 		make_link(ids.username_link, profile)
-	}
+	}*/
 	return ids.$
 }
 

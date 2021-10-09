@@ -16,8 +16,9 @@ document.body.innerHTML = `
 	</scroll-inner>
 </main-scroller>
 
-<image-viewer hidden id=$image_viewer class='Row' onclick="this.hidden=true">
+<image-viewer hidden id=$image_viewer class='Col' onclick="this.hidden=true">
 	<img id=$gallery_image>
+	<div><a id=$gallery_download>download</a></div>
 </image-viewer>
 
 <box-where-i-hide-the-template-elements hidden>
@@ -113,8 +114,8 @@ document.body.innerHTML = `
 </template>
 
 <template id=$Usernames>
-	<a data-id=name_link><L- class='pre name' data-id=name></L-></a>
-	<a data-id=username_link><L- class='pre username' data-id=username></L-></a>
+	<L- class='pre name' data-id=name></L->
+	<L- class='pre username' data-id=username></L->
 </template>
 
 <template id=$LoginForm>
