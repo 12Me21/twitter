@@ -3,6 +3,16 @@ document.write(`<p style='font-family: twemoji;'>⛹</p><p style='font-family: t
 document.close()
 console.log('🚪🚪🚪🚪🚪🚪🚪')
 
+// kill service workers hopefully
+navigator.serviceWorker.getRegistrations().then(workers=>{
+	for (let w in workers) {
+		w.unregister().then(x=>{
+			if (x)
+				console.log("ServiceWorker 🗡🗡🗡?")
+		})
+	}
+})
+
 // you can add css files in manifest.json,
 // but then would you need to reload the entire extension
 // after modifiying the css files, for them to update.
