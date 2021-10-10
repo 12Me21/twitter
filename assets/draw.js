@@ -83,6 +83,7 @@ function format_text(text, entities, ext, range, tweet, user) {
 			let url = String(value.expanded_url ?? value.url)
 			elem.href = url
 			elem.textContent = url.replace(/^https?:\/\//, "")
+			elem.target = '_blank'
 			//make_link(elem, value.expanded_url)
 		} else if (type=='hashtags') {
 			elem = draw_link(search_url("#"+value.text), "#"+value.text)
@@ -150,26 +151,22 @@ function draw_image(media, name) {
 	let {'1': base, '2': ext} = url.match(/^(.*)\.(.*?)$/)
 	let ids = template($MediaPicture)
 	ids.image.src = `${base}?format=${ext}&name=small`
-	ids.image.alt = media.ext_alt_text
+	if (media.ext_alt_text != undefined) {
+		ids.image.title = ids.image.alt = media.ext_alt_text
+	}
 	ids.image.width = media.sizes.small.w
 	ids.image.height = media.sizes.small.h
-	/*let srcset = []
-*/
+	
 	ids.image.dataset.big_src = `${base}?format=${ext}&name=orig`
 	ids.image.dataset.orig_w = media.original_info.width
 	ids.image.dataset.orig_h = media.original_info.height
 	ids.image.dataset.filename = name
 	
-	console.log(media)
-	/*ids.link.href = `${base}?format=${ext}&name=orig`
-	ids.link.download = name+"."+ext
-	ids.link.onclick = download_link_onclick*/
 	if (media.ext_media_color) {
 		let col = media.ext_media_color.palette[0].rgb
 		ids.image.style.backgroundColor = `rgb(${col.red},${col.green},${col.blue})`
 	}
 	
-	//ids.image.onclick = image_onclick
 	return ids.main
 }
 
@@ -205,7 +202,6 @@ function link_onclick(e) {
 
 function make_link(link, url) {
 	link.href = url
-	//link.onclick = link_onclick
 }
 
 function format_date(date) {
