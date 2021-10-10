@@ -5,11 +5,9 @@ console.log('🚪🚪🚪🚪🚪🚪🚪')
 
 // kill service workers hopefully
 navigator.serviceWorker.getRegistrations().then(workers=>{
-	for (let w in workers) {
-		w.unregister().then(x=>{
-			if (x)
-				console.log("ServiceWorker 🗡🗡🗡?")
-		})
+	for (let w of workers) {
+		console.log("attempting to kill service worker:", w) 
+		w.unregister()
 	}
 })
 

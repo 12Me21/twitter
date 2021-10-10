@@ -33,6 +33,7 @@ async function swap_accounts(na) {
 // called when the page loads
 async function onload() {
 	$gallery_download.onclick = download_link_onclick
+	$image_viewer.onclick = function(){ this.hidden=true }
 	
 	auth_app = new App()
 	await auth_app.init()
