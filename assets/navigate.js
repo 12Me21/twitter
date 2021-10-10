@@ -40,6 +40,19 @@ async function onload() {
 	auth = new Auth(auth_app)
 	auth.init_auto()
 	
+	let accts = json(localStorage.getItem('12-accounts')) || {}
+	for (let name in accts) {
+		let x = document.createElement('button')
+		x.textContent = name
+		let tokens = accts[name]
+		x.onclick = function() {
+			let a = new Auth(auth_app)
+			a.init_from_tokens(tokens.twitter_sess, tokens.auth_token)
+			swap_accounts(a)
+		}
+		$account_list.append(x)
+	}
+	
 	swap_accounts(auth)
 	
 	//mutate = new Mutate(auth)

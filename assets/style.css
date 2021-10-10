@@ -7,6 +7,7 @@
 html {
 	font-family: roboto, noto-sans, twemoji, twitma;
 	line-height: 1.15;
+	--sidebar-width: 6rem;
 }
 
 * {
@@ -69,7 +70,7 @@ media-box > media-item > video {
 
 tl-tweet {
 	display: block;
-	border: 1px solid red;
+	border: 1px solid gray;
 }
 
 tl-profile {
@@ -164,7 +165,7 @@ poll-option {
 }
 
 main-scroller {
-	display: block;
+	display: flex;
 	overflow-y: scroll;
 	height: 100%;
 }
@@ -175,10 +176,13 @@ scroll-inner {
 
 main-scroller > scroll-inner {
 	max-width: 6in;
-	margin: auto;
+	width: 6in;
+	/*margin-left: var(--sidebar-width);*/
+	margin-right: auto;
 	border-left: 1px solid gray;
 	border-right: 1px solid gray;
 	min-height: 100%;
+	height: fit-content;
 }
 
 body {
@@ -187,7 +191,11 @@ body {
 }
 
 side-bar {
-	position: fixed;
+	/*width: var(--sidebar-width);*/
+	flex-shrink: 0;
+	position: sticky;
+	height: 100%;
+	top: 0;
 }
 
 html.f-loading body {
