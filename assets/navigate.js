@@ -140,7 +140,7 @@ click_actions = [
 			if (type=='retweet') {
 				if (elem.classList.contains('own-reaction')) {
 					elem.disabled = true
-					mutate.delete_retweet(id).then(x=>{
+					mutate.delete_retweet(tweet.dataset.rt_id||id).then(x=>{
 						elem.classList.remove('own-reaction')
 					}).trap(ApiError, x=>{
 						console.log("unretweet failed?", x)
@@ -260,6 +260,18 @@ class View {
 // todo: some way to alter the url during/after rendering
 
 let views = [
+	//
+	new View(
+		[true, 'status', /^\d+$/, 'retweets', 'with_comments'],
+		async (url) => {
+			let r = query.quote_tweets(url.path[2])
+			return [r, await r.get()]
+		},
+		function([r, data]) {
+			let x = new Timeline(data[0], data[1], r)
+			scroll_add(x.elem)
+		}
+	),
 	// 
 	new View(
 		['i', 'events', /^\d+$/],
