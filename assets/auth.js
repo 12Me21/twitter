@@ -56,7 +56,7 @@ class App {
 	async get_secrets() {
 		console.info("fetching secrets")
 		// awful hack.
-		let text = await fetch("https://abs.twimg.com/responsive-web/client-web/main.1aa07975.js").then(x=>x.text())
+		let text = await fetch("https://abs.twimg.com/responsive-web/client-web/main.fd25d125.js").then(x=>x.text())
 		//this.bearer = text.match(/a="Web-12",s="(.*?)"/)[1]
 		this.bearer = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
 		this.querys = {}

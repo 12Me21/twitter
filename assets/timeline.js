@@ -168,7 +168,7 @@ class Timeline {
 					}
 					return elem
 				} else if (content.notification) {
-					return draw_notification(objects.notifications[content.notification.id])
+					return draw_notification(objects.notifications[content.notification.id], objects)
 				}
 				return draw_unknown("Item", content)
 			} else {

@@ -51,7 +51,7 @@ class TimelineRequest {
 		try {
 			// we catch all errors in .process since .process should just be like x => x.user.result
 			// i.e. we're just going to get errors when the response data was formatted unexpectedly
-			return [this.#process(resp)]
+			return this.#process(resp)
 		} catch (e) {
 			// this shouldn't be an api error, or at least not the same type
 			// the error is due to unexpected formatting of the response data, mm
@@ -149,7 +149,7 @@ class Query {
 				withVoice: false,
 				...query_junk,
 			}),
-			resp => resp.threaded_conversation_with_injections,
+			resp => [resp.threaded_conversation_with_injections],
 		)
 	}
 
@@ -176,7 +176,7 @@ class Query {
 				withHighlightedLabel: false,
 				...query_junk,
 			}),
-			resp => resp.bookmark_timeline.timeline,
+			resp => [resp.bookmark_timeline.timeline],
 		)
 	}
 	
@@ -194,7 +194,7 @@ class Query {
 				withVoice: true,
 				...query_junk,
 			}),
-			resp => resp.user.result.timeline.timeline
+			resp => [resp.user.result.timeline.timeline],
 		)
 	}
 
@@ -357,5 +357,20 @@ class Query {
 		})
 		// return [resp.whatever.timeline, cursor=>this.moment_tweets(cursor, id)]
 	}
-	
+
+	quote_tweets(id) {
+		return new TimelineRequest(cursor => 
+			this.get_v2('search/adaptive.json', {
+				...query_junk_2,
+				q: "quoted_tweet_id:"+id,
+				vertical: 'tweet_detail_quote',
+				count: 20,
+				pc: 1,
+				spelling_corrections: 1,
+				...cursor&&{cursor},
+				ext: 'mediaStats,highlightedLabel,voiceInfo,superFollowMetadata',
+			}),
+			resp => [resp.timeline, resp.globalObjects],
+		)
+	}
 }
