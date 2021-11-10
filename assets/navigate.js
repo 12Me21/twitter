@@ -1,4 +1,4 @@
-function defer() {
+function blink() {
 	return new Promise(r => setTimeout(r,0))
 }
 
@@ -125,7 +125,7 @@ click_actions = [
 			$gallery_image.height = elem.dataset.orig_w
 			//$gallery_image.style.backgroundColor = elem.style.backgroundColor
 			$image_viewer.hidden = false
-			await defer()
+			await blink()
 			$gallery_image.src = elem.dataset.big_src
 		}
 	),
@@ -257,17 +257,19 @@ class View {
 // - perhaps like, every time you navigate to a new thing, we create a new scroller, and store like, up to 3 at a time, so you can easily go back to the previous thing. sorta like tweetdeck
 
 // todo: some way to alter the url during/after rendering
+let USER_NAME = /^@?\w+$/
+let NUMBER = /^\d+$/
 
 let views = [
 	// 
 	new View(
-		['i', 'events', /^\d+$/],
+		['i', 'events', NUMBER],
 		async (url) => {
 			let id = url.path[2]
 			return [await query.moment(id), await query.moment_tweets(null, id)]
 		},
 		function([data1, data2]) {
-			let x = new Timeline(data2.timeline, data2.globalObjects)
+			let x = new Timeline([data2.timeline, data2.globalObjects])
 			scroll_add(x.elem)
 		}
 	),
@@ -299,7 +301,7 @@ let views = [
 		}
 	),
 	new View(
-		[true, 'lists'],
+		[USER_NAME, 'lists'],
 		async (url) => {
 			let user = await query.user(url.path[0])
 			if (user) {
@@ -312,7 +314,7 @@ let views = [
 		function(data) {
 			scroll_add(draw_profile(data[0]))
 			if (data[1]) {
-				let x = new Timeline(data[1])
+				let x = new Timeline([data[1]])
 				scroll_add(x.elem)
 			}
 		}
@@ -321,18 +323,20 @@ let views = [
 		['search'],
 		async (url) => {
 			let params = new URLSearchParams(url.search)
-			let query = params.get('q')
-			return [query, await query.search(null, query)]
+			let q = params.get('q')
+			let r = query.search(q)
+			console.log('search', r)
+			return [q, r, await r.get()]
 		},
-		function([query, resp]) {
+		function([q, r, data]) {
 			let ids = template($SearchBox)
 			// later: this will be an event on the customElement etc etc.
 			ids.submit.onclick = x => {
 				go_to(search_url(ids.input.value))
 			}
-			ids.input.value = query
+			ids.input.value = q
 			scroll_add(ids.main)
-			let x = new Timeline(resp.timeline, resp.globalObjects)
+			let x = new Timeline(data, r)
 			scroll_add(x.elem)
 		}
 	),
@@ -399,13 +403,25 @@ let views = [
 	),
 	// twitter.com/<name>/status/<id>
 	new View(
-		[/^@?\w+$/, 'status', /^\d+$/],
+		[USER_NAME, 'status', NUMBER],
 		async (url) => {
 			let r = query.tweet(url.path[2])
 			return [r, await r.get()]
 		},
 		function([r, data]) {
-			let x = new Timeline(data[0], data[1], r)
+			let x = new Timeline(data, r)
+			scroll_add(x.elem)
+		}
+	),
+	// twitter.com/i/latest
+	new View(
+		['i', 'latest'],
+		async (url) => {
+			let r = query.latest()
+			return [r, await r.get()]
+		},
+		function([r, data]) {
+			let x = new Timeline(data, r)
 			scroll_add(x.elem)
 		}
 	),
@@ -414,22 +430,25 @@ let views = [
 		['home'],
 		(url) => query.home(url.searchParams.get('cursor')),
 		function(data) {
-			let x = new Timeline(data.timeline, data.globalObjects)
+			let x = new Timeline([data.timeline, data.globalObjects])
 			scroll_add(x.elem)
 		}
 	),
 	// twitter.com/notifications
 	new View(
 		['notifications'],
-		(url) => query.notifications(null),
-		function(data) {
-			let x = new Timeline(data.timeline, data.globalObjects)
+		async (url) => {
+			let r = query.notifications()
+			return [r, await r.get()]
+		},
+		function([r, data]) {
+			let x = new Timeline(data, r)
 			scroll_add(x.elem)
 		}
 	),
 	// twitter.com/<name>/followers
 	new View(
-		[true, 'followers'],
+		[USER_NAME, 'followers'],
 		async function(url) {
 			let user = await query.user(url.path[0])
 			if (user) {
@@ -439,17 +458,17 @@ let views = [
 				return [user, null]
 			}
 		},
-		function(data) {
-			scroll_add(draw_profile(data[0]))
-			if (data[1]) {
-				let x = new Timeline(data[1])
+		function([user, data]) {
+			scroll_add(draw_profile(user))
+			if (data) {
+				let x = new Timeline([data])
 				scroll_add(x.elem)
 			}
 		}
 	),
 	// twitter.com/<name>/likes
 	new View(
-		[true, 'likes'],
+		[USER_NAME, 'likes'],
 		async function(url) {
 			let user = await query.user(url.path[0])
 			if (user) {
@@ -459,10 +478,10 @@ let views = [
 				return [user, null]
 			}
 		},
-		function(data) {
-			scroll_add(draw_profile(data[0]))
-			if (data[1]) {
-				let x = new Timeline(data[1])
+		function([user, data]) {
+			scroll_add(draw_profile(user))
+			if (data) {
+				let x = new Timeline([data])
 				scroll_add(x.elem)
 			}
 		}
@@ -479,7 +498,7 @@ let views = [
 			return [r, await r.get()]
 		},
 		([tr, data]) => {
-			let x = new Timeline(data[0], data[1], tr)
+			let x = new Timeline(data, tr)
 			scroll_add(x.elem)
 		},
 	),
@@ -494,18 +513,40 @@ let views = [
 			if (user) {
 				let resp = query.user_tweets(user.id_str)
 				let resp2 = query.friends_following(user.id_str)
-				return [user, resp, await resp.get(), await resp2]
+				let resp3 = query.biz_profile(user.id_str)
+				return [user, resp, (await resp3).user_result_by_rest_id.result, await resp.get(), await resp2]
 			} else {
 				return [user, null]
 			}
 		},
-		([user, resp, data, followo]) => {
+		([user, resp, resp3, data, followo]) => {
+			if (resp3 && resp3.rest_id == user.id_str)
+				user._biz = resp3
 			scroll_add(draw_profile(user))
 			if (followo) {
 				console.log("friends:", followo)
 			}
 			if (data) {
-				let x = new Timeline(data[0], data[1], resp)
+				let x = new Timeline(data, resp)
+				scroll_add(x.elem)
+			}
+		}
+	),
+	new View(
+		[/^@?\w+$/, 'with_replies'],
+		async (url) => {
+			let user = await query.user(url.path[0])
+			if (user) {
+				let resp = query.user_all_tweets(user.id_str)
+				return [user, resp, await resp.get()]
+			} else {
+				return [user, null, null]
+			}
+		},
+		([user, resp, data]) => {
+			scroll_add(draw_profile(user))
+			if (data) {
+				let x = new Timeline(data, resp)
 				scroll_add(x.elem)
 			}
 		}
@@ -526,6 +567,7 @@ let error_view = new View(
 	[],
 	async function(e) { return e },
 	function (e) {
+		console.log("ev", e)
 		$main_scroll.append("error rendering:\n"+e.stack)
 	}
 )
@@ -563,7 +605,7 @@ async function render(url) {
 			}
 			console.error(e)
 			view = error_view
-			resp = view.request(e)
+			resp = await view.request(e)
 		}
 	} else {
 		resp = url
@@ -574,16 +616,15 @@ async function render(url) {
 	// and call the render function to display the data
 	document.documentElement.classList.add('f-rendering')
 	document.documentElement.classList.remove('f-loading')
-	// i defer this with settimeout so the color has time to change
-	setTimeout(x=>{
-		try {
-			view.render(resp)
-		} catch (e) {
-			console.error(e)
-			view = error_view
-			resp = view.request(e)
-			view.render(resp)
-		}
-		document.documentElement.classList.remove('f-rendering')
-	}, 0)
+	// i defer this so the color has time to change
+	await blink();
+	try {
+		view.render(resp)
+	} catch (e) {
+		console.error(e)
+		view = error_view
+		resp = view.request(e)
+		view.render(resp)
+	}
+	document.documentElement.classList.remove('f-rendering')
 }

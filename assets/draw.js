@@ -29,14 +29,34 @@ function draw_link(url, text) {
 	return elem
 }
 
+const MAX_BITRATE = 2000000
+
 function draw_media(value, name) {
 	if (value.type=='photo') {
 		return draw_image(value, name)
 	} else if (value.type=='video') {
 		// todo: find the right variant
-		return draw_video(value.video_info.variants[1].url, value.media_url_https)
+		//console.log("videos", value.video_info.variants)
+		let vs = value.video_info.variants.filter(x=>x.bitrate).sort((a,b)=> {
+			let aa = a.bitrate
+			let bb = b.bitrate
+			if (bb > MAX_BITRATE)
+				bb = -bb
+			if (aa > MAX_BITRATE)
+				aa = -aa
+			return bb-aa
+		})
+		let ids = template($MediaVideo)
+		ids.image.preload = value.media_url_https
+		for (let v of vs) {
+			let s = document.createElement('source')
+			s.type = v.content_type
+			s.src = v.url
+			ids.image.append(s)
+		}
+		return ids.main
 	} else if (value.type=='animated_gif') {
-		return draw_video(value.video_info.variants[0].url, value.media_url_https)
+		return draw_video(value.video_info.variants[0].url, )
 	} else {
 		return document.createTextNode("unknown media type: "+JSON.stringify(value))
 	}
@@ -192,6 +212,10 @@ function draw_video(url, thumbnail) {
 	let ids = template($MediaVideo)
 	ids.image.src = url
 	ids.image.preload = thumbnail
+	ids.image.onerror = function() {
+		console.log("video failed!", this);
+		//this.load()
+	}
 	return ids.main
 }
 
@@ -360,6 +384,8 @@ function draw_tweet(id, objects) {
 	let username = "missingno" // fallback
 	username = user.screen_name
 	ids.avatar.src = user.profile_image_url_https.replace("_normal", "_bigger")
+	if (user.ext_has_nft_avatar)
+		ids.avatar.classList.add('nft-avatar')
 	//let col = user.profile_image_extensions.mediaColor.r.ok.palette[0].rgb
 	//ids.avatar.style.backgroundColor = `rgb(${col.red},${col.green},${col.blue})`
 	make_link(ids.user_link, profile_url(user.screen_name))
@@ -455,6 +481,15 @@ function draw_profile(user) {
 			ids.bar.style.backgroundColor = "#"+user.profile_link_color
 		} else {
 			ids.bar.remove()
+		}
+		
+		if (user.ext_has_nft_avatar)
+			ids.avatar.classList.add('nft-avatar')
+		
+		if (user._biz) {
+			for (let x of user._biz.profilemodules.v1) {
+				
+			}
 		}
 		
 		return ids.main

@@ -9,6 +9,8 @@ let query_junk = {
 	withSuperFollowsUserFields: true,
 	withSuperFollowsTweetFields: true,
 	withUserResults: true,
+	withNftAvatar: true,
+	withVoice: false, // ??
 }
 
 // what the fuck are these parameters
@@ -27,12 +29,13 @@ let query_junk_2 = {
 	include_cards: 1,
 	include_ext_alt_text: true,
 	include_quote_count: true,
-	include_reply_count: 1,
+	include_replypp_count: 1,
 	tweet_mode: 'extended',
 	include_entities: true,
 	include_user_entities: true,
 	include_ext_media_color: true,
 	include_ext_media_availability: true,
+	//include_ext_has_nft_avatar: true,
 	send_error_codes: true,
 	simple_quoted_tweet: true,
 }
@@ -51,7 +54,7 @@ class TimelineRequest {
 		try {
 			// we catch all errors in .process since .process should just be like x => x.user.result
 			// i.e. we're just going to get errors when the response data was formatted unexpectedly
-			return [this.#process(resp)]
+			return this.#process(resp)
 		} catch (e) {
 			// this shouldn't be an api error, or at least not the same type
 			// the error is due to unexpected formatting of the response data, mm
@@ -72,13 +75,17 @@ class Query {
 			this.abort_controller.abort()
 	}
 	
-	get_v11(path, params) {
+	async get_v11(path, params) {
 		if (params)
 			path = path + encode_url_params(params)
-		return fetch("https://twitter.com/i/api/1.1/"+path, {
+		let resp = await fetch("https://twitter.com/i/api/1.1/"+path, {
 			headers: this.auth.auth_headers(),
 			signal: this.signal,
 		}).then(x=>x.json())
+		// todo: i think with v1.1 we can use the http response code instead
+		if (resp.errors && resp.errors.length)
+			throw new ApiError(resp)
+		return resp
 	}
 	
 	get_v2(path, params) {
@@ -90,7 +97,8 @@ class Query {
 	
 	async get_graphql(type, params) {
 		let q = this.auth.app.querys[type]
-		let resp = await fetch(`https://twitter.com/i/api/graphql/${q}/${type}?variables=${encodeURIComponent(JSON.stringify(params))}`, {
+		let url = `https://twitter.com/i/api/graphql/${q}/${type}?variables=${encodeURIComponent(JSON.stringify(params))}`
+		let resp = await fetch(url, {
 			headers: this.auth.auth_headers(),
 			signal: this.signal,
 		}).then(x=>x.json())
@@ -149,7 +157,7 @@ class Query {
 				withVoice: false,
 				...query_junk,
 			}),
-			resp => resp.threaded_conversation_with_injections,
+			resp => [resp.threaded_conversation_with_injections],
 		)
 	}
 
@@ -176,7 +184,7 @@ class Query {
 				withHighlightedLabel: false,
 				...query_junk,
 			}),
-			resp => resp.bookmark_timeline.timeline,
+			resp => [resp.bookmark_timeline.timeline],
 		)
 	}
 	
@@ -194,10 +202,23 @@ class Query {
 				withVoice: true,
 				...query_junk,
 			}),
-			resp => resp.user.result.timeline.timeline
+			resp => [resp.user.result.timeline.timeline]
 		)
 	}
-
+	
+	// tweets incl. replies
+	user_all_tweets(user_id) {
+		return new TimelineRequest(cursor =>
+			this.get_graphql('UserTweetsAndReplies', {
+				userId: user_id,
+				count: 20,
+				...cursor && {cursor},
+				...query_junk,
+			}),
+			resp => [resp.user.result.timeline.timeline]
+		)
+	}
+	
 	// list users who have liked (or used other reactions on) a tweet
 	// this does NOT support `cursor` for some reason. maybe we should be using Favoriters
 	reactors(cursor, id) {
@@ -218,13 +239,16 @@ class Query {
 	}
 	
 	// note: for some reason this does NOT fill in the 'ext' field!
-	notifications(cursor) {
-		return this.get_v2('notifications/all.json', {
-			...query_junk_2,
-			...cursor&&{cursor},
-			count: 20,
-			ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo,ligma",
-		})
+	notifications() {
+		return new TimelineRequest(cursor =>
+			this.get_v2('notifications/all.json', {
+				...query_junk_2,
+				...cursor&&{cursor},
+				count: 20,
+				ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo",
+			}),
+			resp => [resp.timeline, resp.globalObjects],
+		)
 	}
 	
 	home(cursor) {
@@ -237,21 +261,38 @@ class Query {
 			ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo",
 		})
 	}
+	latest() {
+		return new TimelineRequest(cursor => 
+			this.get_v2('timeline/home_latest.json', {
+				...query_junk_2,
+				earned: 1,
+				count: 3,
+				lca: true,
+				...cursor && {cursor: cursor},
+				ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo",
+			}),
+			resp => [resp.timeline, resp.globalObjects],
+		)
+	}
 	
 	// `string`: search query text
 	// `cursor`: (optional) cursor id
 	// return: raw response
-	search(cursor, string) {
-		return this.get_v2('search/adaptive.json', {
-			...query_junk_2,
-			q: string,
-			count: 20,
-			query_source: '',
-			...cursor&&{cursor:cursor},
-			pc: 1,
-			spelling_corrections: 1,
-			ext: 'mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo,superFollowMetadata',
-		})
+	search(string) {
+		console.log("search req");
+		return new TimelineRequest(cursor =>
+			this.get_v2('search/adaptive.json', {
+				...query_junk_2,
+				q: string,
+				count: 20,
+				query_source: '',
+				...cursor&&{cursor:cursor},
+				pc: 1,
+				spelling_corrections: 1,
+				ext: 'mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo,superFollowMetadata',
+			}),
+			resp => [resp.timeline, resp.globalObjects],
+		)
 	}
 	
 	// get own lists
@@ -356,6 +397,10 @@ class Query {
 			get_annotations: true,
 		})
 		// return [resp.whatever.timeline, cursor=>this.moment_tweets(cursor, id)]
+	}
+	
+	biz_profile(user) {
+		return this.get_graphql('BizProfileFetchUser', {rest_id: user})
 	}
 	
 }

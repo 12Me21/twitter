@@ -1,5 +1,5 @@
 class Timeline {
-	constructor(insts, objects, gen) {
+	constructor([insts, objects], gen) {
 		let ids = template($Timeline)
 		this.elem = ids.main
 		this.gen = gen
@@ -12,6 +12,8 @@ class Timeline {
 				if (inst.addEntries) {
 					for (let entry of inst.addEntries.entries)
 						this.add_entry(entry, objects)
+				} else if (inst.removeEntries) {
+					this.remove_entries(inst.removeEntries.entryIds)
 				} else {
 					this.add_elem(draw_unknown("? Instruction", inst))
 				}
@@ -129,10 +131,17 @@ class Timeline {
 				result.legacy.card.binding_values = map
 			}
 			
+			// now handle the user!
 			let user = result.core.user_results.result
+			if (user.has_nft_avatar!=null)
+				user.legacy.ext_has_nft_avatar = user.has_nft_avatar
+			
+			// set the object in the map
 			objects.users[user.rest_id] = user.legacy
 			
+			// return the id
 			return result.legacy.id_str
+			
 		} catch (e) {
 			console.log("failed to convert tweet:", result)
 			throw(e)
@@ -214,6 +223,12 @@ class Timeline {
 			}
 		}
 		return false
+	}
+	
+	remove_entries(ids) {
+		for (let child of this.elem.children)
+			if (ids.includes(child.dataset.id))
+				child.remove()
 	}
 	
 	add_entry(entry, objects) {

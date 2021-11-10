@@ -226,6 +226,9 @@ tl-entry {
 	border: 10px inset pink;
 }
 
+.nft-avatar {
+	border: 2px inset #F0F;
+}
 
 a {
 	background-color: rgba(0,128,255,0.2);
