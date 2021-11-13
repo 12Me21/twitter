@@ -126,6 +126,11 @@ a:hover {
 
 .reaction {
 	padding: 0.1rem;
+	display: flex;
+}
+
+.reaction > span > svg {
+	width: 1rem;
 }
 
 tl-list {
@@ -230,7 +235,7 @@ tl-entry {
 	border: 2px inset #F0F;
 }
 
-a {
+a[href] {
 	background-color: rgba(0,128,255,0.2);
 	/*background-image: url("chrome-extension://__MSG_@@extension_id__/assets/dither.png");*/
 }
@@ -240,4 +245,8 @@ a {
 	flex-basis: 0;
 	text-align: center;
 	border: 2px outset blue;
+}
+
+.reactions {
+	column-gap: 0.2rem;
 }

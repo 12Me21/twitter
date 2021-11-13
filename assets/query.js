@@ -214,7 +214,7 @@ class Query {
 				withVoice: true,
 				...query_junk,
 			}),
-			resp => [resp.user.result.timeline.timeline]
+			resp => [resp.user.result.timeline.timeline],
 		)
 	}
 	
@@ -449,5 +449,20 @@ class Query {
 		let resp = await this.get_graphql('BizProfileFetchUser', {rest_id: user})
 		return resp.user_result_by_rest_id.result
 	}
-	
+
+	quote_tweets(id) {
+		return new TimelineRequest(cursor => 
+			this.get_v2('search/adaptive.json', {
+				...query_junk_2,
+				q: "quoted_tweet_id:"+id,
+				vertical: 'tweet_detail_quote',
+				count: 20,
+				pc: 1,
+				spelling_corrections: 1,
+				...cursor&&{cursor},
+				ext: 'mediaStats,highlightedLabel,voiceInfo,superFollowMetadata',
+			}),
+			resp => [resp.timeline, resp.globalObjects],
+		)
+	}
 }

@@ -33,6 +33,7 @@ async function swap_accounts(na) {
 // called when the page loads
 async function onload() {
 	$gallery_download.onclick = download_link_onclick
+	$image_viewer.onclick = function(){ this.hidden=true }
 	
 	auth_app = new App()
 	await auth_app.init()
@@ -156,6 +157,18 @@ let USER_NAME = /^@?\w+$/
 let NUMBER = /^\d+$/
 
 let views = [
+	//
+	new View(
+		[true, 'status', /^\d+$/, 'retweets', 'with_comments'],
+		async (url) => {
+			let r = query.quote_tweets(url.path[2])
+			return [r, await r.get()]
+		},
+		function([r, data]) {
+			let x = new Timeline(data[0], data[1], r)
+			scroll_add(x.elem)
+		}
+	),
 	// 
 	new View(
 		['i', 'events', NUMBER],

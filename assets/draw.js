@@ -18,7 +18,7 @@ function profile_url(username) {
 }
 
 function unescape_html(text) {
-	return text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&")
+	return text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&amp;/g, "&")
 }
 
 function draw_link(url, text) {
@@ -246,9 +246,18 @@ function format_date(date) {
 	  return Math.round(seconds) + " seconds ago"*/
 }
 
-function draw_notification(notif) {
+function draw_notification(notif, objects) {
 	let elem = document.createElement('div')
 	elem.textContent = notif.message.text
+	let tweets = notif.template?.aggregateUserActionsV1?.targetObjects
+	if (tweets) {
+		for (let x of tweets) {
+			if (x.tweet) {
+				let id = x.tweet.id
+				elem.append(draw_tweet(id, objects))
+			}
+		}
+	}
 	return elem
 }
 
@@ -327,7 +336,7 @@ function draw_names(user, no_link) {
 
 function draw_reaction(icon, type, count, pressed) {
 	let r = template($ReactButton)
-	r.icon.textContent = icon
+	r.icon.append(icon)
 	if (count != undefined) {
 		if (count>0)
 			r.count.textContent = count
@@ -412,12 +421,12 @@ function draw_tweet(id, objects) {
 	}
 	// regular interaction counts 
 	let x = document.createDocumentFragment()
-	x.append(draw_reaction("🔁", 'retweet', tweet.retweet_count, tweet.retweeted))
-	x.append(draw_reaction("Q", 'quote', tweet.quote_count))
-	x.append(draw_reaction("R", 'reply', tweet.reply_count))
-	x.append(draw_reaction("💙", 'like', tweet.favorite_count, tweet.favorited))
+	x.append(draw_reaction(template($Icon_reply).$, 'reply', tweet.reply_count))
+	x.append(draw_reaction(template($Icon_quote).$, 'quote', tweet.quote_count))
+	x.append(draw_reaction(template($Icon_retweet).$, 'retweet', tweet.retweet_count, tweet.retweeted))
+	x.append(draw_reaction(template($Icon_like).$, 'like', tweet.favorite_count, tweet.favorited))
 	// draw reactions (secret)
-	if (tweet.ext && tweet.ext.signalsReactionMetadata) {
+	/*if (tweet.ext && tweet.ext.signalsReactionMetadata) {
 		if (!auth.guest) {
 			let mine = tweet.ext.signalsReactionPerspective.r.ok.reactionType
 			for (let react of tweet.ext.signalsReactionMetadata.r.ok.reactionTypeMap) {
@@ -431,8 +440,8 @@ function draw_tweet(id, objects) {
 				x.append(draw_reaction(icon, react[0], react[1], react[0]==mine))
 			}
 		}
-	}
-	x.append(draw_reaction("🔖", 'bookmark', undefined))
+	}*/
+	x.append(draw_reaction(template($Icon_bookmark).$, 'bookmark', undefined))
 	ids.reactions.replaceWith(x)
 	// todo: gear icon should display a list of like
 	// pin, bookmark, delete, etc.
