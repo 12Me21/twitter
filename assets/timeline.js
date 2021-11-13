@@ -1,9 +1,12 @@
 class Timeline {
-	constructor([insts, objects], gen) {
+	constructor(gen) {
 		let ids = template($Timeline)
-		this.elem = ids.main
-		this.gen = gen
-		this.add_instructions(insts, objects)
+		this.elem = ids.main;
+		this.gen = gen;
+		if (gen.first) {
+			let [insts, objects] = gen.first;
+			this.add_instructions(insts, objects);
+		}
 	}
 	
 	add_instructions(insts, objects) {

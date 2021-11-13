@@ -38,7 +38,7 @@ for (let file of ['core.css', 'style.css']) {
 	document.head.append(elem)
 }
 
-for (let file of ['index.html', 'auth.js', 'query.js', 'mutate.js', 'draw.js', 'timeline.js', 'navigate.js', /*'twitter-text.js', 'nicedit.js'*/]) {
+for (let file of ['index.html', 'auth.js', 'query.js', 'mutate.js', 'draw.js', 'timeline.js', 'event.js', 'navigate.js']) {
 	let elem = document.createElement('script')
 	elem.src = url(file)
 	document.head.append(elem)

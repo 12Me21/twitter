@@ -492,6 +492,15 @@ function draw_profile(user) {
 			}
 		}
 		
+		let base = "https://twitter.com/"+user.screen_name
+		ids.tab_tweets.href = base
+		ids.tab_replies.href = base+"/with_replies"
+		ids.tab_media.href = base+"/media"
+		ids.tab_likes.href = base+"/likes"
+		ids.tab_followers.href = base+"/followers"
+		ids.tab_following.href = base+"/following"
+		ids.tab_lists.href = base+"/lists"
+		
 		return ids.main
 		//} else if (result && result.__typename=='UserUnavailable') {
 		//	return document.createTextNode("user unavailalbe: "+result.reason)

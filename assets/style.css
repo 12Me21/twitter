@@ -234,3 +234,10 @@ a {
 	background-color: rgba(0,128,255,0.2);
 	/*background-image: url("chrome-extension://__MSG_@@extension_id__/assets/dither.png");*/
 }
+
+.tabs > * {
+	flex-grow: 1;
+	flex-basis: 0;
+	text-align: center;
+	border: 2px outset blue;
+}

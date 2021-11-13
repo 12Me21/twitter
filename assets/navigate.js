@@ -71,131 +71,6 @@ function scroll_add(x) {
 	$main_scroll.append(x)
 }
 
-class ClickAction {
-	constructor(check, handle) {
-		this.checker = check
-		this.handler = handle
-	}
-	
-	attempt(elem, event) {
-		if (this.checker(elem)) {
-			event.preventDefault()
-			try {
-				this.handler(elem, event)
-			} finally {
-				return true
-			}
-		}
-		return false
-	}
-	
-	static handle_event(event, actions) {
-		for (let elem of event.path) {
-			if (actions.find(a => a.attempt(elem, event)))
-				break;
-		}
-	}
-}
-
-click_actions = [
-	new ClickAction(
-		elem => elem instanceof HTMLAnchorElement && elem.origin==window.location.origin && !elem.download,
-		function(elem) {
-			go_to(elem.href)
-		}
-	),
-	new ClickAction(
-		elem => elem.tagName=='TL-CURSOR',
-		async function(elem) {
-			let t = elem.x_timeline
-			// todo: disable while loading
-			let [i,o] = await t.gen.get(elem.dataset.cursor)
-			t.add_instructions(i,o)
-			elem.remove()
-		},
-	),
-	new ClickAction(
-		elem => elem instanceof HTMLImageElement && elem.dataset.big_src,
-		async function(elem) {
-			$gallery_download.href = elem.dataset.big_src
-			$gallery_download.download = elem.dataset.filename
-			
-			$gallery_image.src = elem.src
-			$gallery_image.width = elem.dataset.orig_w
-			$gallery_image.height = elem.dataset.orig_w
-			//$gallery_image.style.backgroundColor = elem.style.backgroundColor
-			$image_viewer.hidden = false
-			await blink()
-			$gallery_image.src = elem.dataset.big_src
-		}
-	),
-	new ClickAction(
-		elem => elem instanceof HTMLButtonElement && elem.dataset.interact,
-		async function(elem) {
-			let tweet = elem.closest('tl-tweet')
-			let type = elem.dataset.interact
-			let id = tweet.dataset.id
-			// this is repetitive
-			if (type=='retweet') {
-				if (elem.classList.contains('own-reaction')) {
-					elem.disabled = true
-					mutate.delete_retweet(id).then(x=>{
-						elem.classList.remove('own-reaction')
-					}).trap(ApiError, x=>{
-						console.log("unretweet failed?", x)
-					}).finally(x=>{
-						elem.disabled = false
-					})
-				} else {
-					elem.disabled = true
-					mutate.retweet(id).then(x=>{
-						elem.classList.add('own-reaction')
-					}).trap(ApiError, x=>{
-						console.log("retweet failed?", x)
-					}).finally(x=>{
-						elem.disabled = false
-					})
-				}
-			} else if (type=='like') {
-				if (elem.classList.contains('own-reaction')) {
-					elem.disabled = true
-					mutate.delete_react(id).then(x=>{
-						elem.classList.remove('own-reaction')
-					}).trap(ApiError, x=>{
-						console.log("reaction failed?", x)
-					}).finally(x=>{
-						elem.disabled = false
-					})
-				} else {
-					elem.disabled = true
-					mutate.react(id).then(x=>{
-						elem.classList.add('own-reaction')
-					}).trap(ApiError, x=>{
-						console.log("reaction failed?", x)
-					}).finally(x=>{
-						elem.disabled = false
-					})
-				}
-			} else if (type=='bookmark') {
-				id = tweet.dataset.rt_id || id // can't bookmark retweets
-				elem.disabled = true
-				mutate.bookmark(id).then(x=>{
-					elem.classList.add('own-reaction')
-				}).trap(ApiError, x=>{
-					console.log('bookmark err', x)
-					// idk
-				}).finally(x=>{
-					elem.disabled = false
-				})
-			}
-		}
-	),
-]
-
-document.addEventListener('click', function(e) {
-	ClickAction.handle_event(e, click_actions)
-}, false)
-
 function go_to(url) {
 	history.pushState(null, "", url)
 	render(url)
@@ -229,7 +104,27 @@ class View {
 		this.path = path
 		this.request = request
 		this.render = render
+		//if (render)
+		//	this.render = render
 	}
+	
+	/*request(...args) {
+		if (this.hasOwnProperty('render')) {
+			return this.req(...args)
+		} else {
+			this.gen = this.req(...args)
+			let v = this.gen.next()
+			this.all = Promise.all(v.value)
+			return this.all
+		}
+	}
+	
+	render() {
+		console.log("gen render?")
+		this.gen.next(this.all)
+		this.gen.return()
+		this.gen = undefined
+	}*/
 	
 	check_path(url) {
 		if (url.path.length!=this.path.length)
@@ -266,55 +161,43 @@ let views = [
 		['i', 'events', NUMBER],
 		async (url) => {
 			let id = url.path[2]
-			return [await query.moment(id), await query.moment_tweets(null, id)]
+			let tlr = query.moment_tweets(id)
+			let r1 = query.moment(id)
+			return [await r1, await tlr]
 		},
-		function([data1, data2]) {
-			let x = new Timeline([data2.timeline, data2.globalObjects])
+		function([data1, tlr]) {
+			// todo: render moment data
+			let x = new Timeline(tlr)
 			scroll_add(x.elem)
-		}
-	),
-	// todo: log in screen to add new account
-	new View(
-		['account', 'add'],
-		null,
-		function() {
-			
-		}
-	),
-	// todo: screen to select between accounts
-	new View(
-		['account', 'switch'],
-		null,
-		function() {
-			let accts = json(localStorage.getItem('12-accounts')) || {}
-			for (let name in accts) {
-				let x = document.createElement('button')
-				x.textContent = name
-				let tokens = accts[name]
-				x.onclick = function() {
-					let a = new Auth(auth_app)
-					a.init_from_tokens(tokens.twitter_sess, tokens.auth_token)
-					swap_accounts(a)
-				}
-				scroll_add(x)
-			}
 		}
 	),
 	new View(
 		[USER_NAME, 'lists'],
 		async (url) => {
 			let user = await query.user(url.path[0])
-			if (user) {
-				let resp = await query.user_lists(null, user.id_str)
-				return [user, resp.user.result.timeline.timeline]
-			} else {
-				return [user, null]
-			}
+			let tlr = user && await query.user_lists(user.id_str)
+			return [user, tlr]
 		},
-		function(data) {
-			scroll_add(draw_profile(data[0]))
-			if (data[1]) {
-				let x = new Timeline([data[1]])
+		function([user, tlr]) {
+			scroll_add(draw_profile(user))
+			if (tlr) {
+				let x = new Timeline(tlr)
+				scroll_add(x.elem)
+			}
+		}
+	),
+	new View(
+		['i', 'lists', NUMBER],
+		async (url) => {
+			let id = url.path[2]
+			let list = query.list(id)
+			let tlr = query.list_tweets(id)
+			return [await list, await tlr]
+		},
+		function([list, tlr]) {
+			scroll_add(draw_list(list.list))
+			if (tlr) {
+				let x = new Timeline(tlr)
 				scroll_add(x.elem)
 			}
 		}
@@ -324,11 +207,12 @@ let views = [
 		async (url) => {
 			let params = new URLSearchParams(url.search)
 			let q = params.get('q')
-			let r = query.search(q)
-			console.log('search', r)
-			return [q, r, await r.get()]
+			let tlr = null
+			if (q)
+				tlr = await query.search(q)
+			return [q, tlr]
 		},
-		function([q, r, data]) {
+		function([q, tlr]) {
 			let ids = template($SearchBox)
 			// later: this will be an event on the customElement etc etc.
 			ids.submit.onclick = x => {
@@ -336,8 +220,10 @@ let views = [
 			}
 			ids.input.value = q
 			scroll_add(ids.main)
-			let x = new Timeline(data, r)
-			scroll_add(x.elem)
+			if (tlr) {
+				let x = new Timeline(tlr)
+				scroll_add(x.elem)
+			}
 		}
 	),
 	new View(
@@ -404,45 +290,47 @@ let views = [
 	// twitter.com/<name>/status/<id>
 	new View(
 		[USER_NAME, 'status', NUMBER],
-		async (url) => {
-			let r = query.tweet(url.path[2])
-			return [r, await r.get()]
-		},
-		function([r, data]) {
-			let x = new Timeline(data, r)
+		(url) => query.tweet(url.path[2]),
+		function(tlr) {
+			let x = new Timeline(tlr)
 			scroll_add(x.elem)
 		}
 	),
+	/*new View(
+		[USER_NAME, 'status', NUMBER],
+		function*(url) {
+			let tlr = query.tweet(url.path[2])
+			;[tlr] = yield [tlr]
+			console.log('gen render real?', tlr)
+			let x = new Timeline(tlr)
+			
+			scroll_add(x.elem)
+		}
+	),*/
 	// twitter.com/i/latest
 	new View(
 		['i', 'latest'],
-		async (url) => {
-			let r = query.latest()
-			return [r, await r.get()]
-		},
-		function([r, data]) {
-			let x = new Timeline(data, r)
+		(url) => query.latest(),
+		function(tlr) {
+			let x = new Timeline(tlr)
 			scroll_add(x.elem)
 		}
 	),
 	// twitter.com/home
 	new View(
 		['home'],
-		(url) => query.home(url.searchParams.get('cursor')),
-		function(data) {
-			let x = new Timeline([data.timeline, data.globalObjects])
+		(url) => query.home(),
+		function(tlr) {
+			let x = new Timeline(tlr)
 			scroll_add(x.elem)
 		}
 	),
 	// twitter.com/notifications
 	new View(
 		['notifications'],
-		async (url) => {
-			let r = query.notifications()
-			return [r, await r.get()]
-		},
-		function([r, data]) {
-			let x = new Timeline(data, r)
+		(url) => query.notifications(),
+		function(tlr) {
+			let x = new Timeline(tlr)
 			scroll_add(x.elem)
 		}
 	),
@@ -451,17 +339,13 @@ let views = [
 		[USER_NAME, 'followers'],
 		async function(url) {
 			let user = await query.user(url.path[0])
-			if (user) {
-				let likes = await query.followers(null, user.id_str)
-				return [user, likes.user.result.timeline.timeline]
-			} else {
-				return [user, null]
-			}
+			let tlr = user && await query.followers(user.id_str)
+			return [user, tlr]
 		},
-		function([user, data]) {
+		function([user, tlr]) {
 			scroll_add(draw_profile(user))
-			if (data) {
-				let x = new Timeline([data])
+			if (tlr) {
+				let x = new Timeline(tlr)
 				scroll_add(x.elem)
 			}
 		}
@@ -471,17 +355,13 @@ let views = [
 		[USER_NAME, 'likes'],
 		async function(url) {
 			let user = await query.user(url.path[0])
-			if (user) {
-				let likes = await query.user_likes(null, user.id_str)
-				return [user, likes.user.result.timeline.timeline]
-			} else {
-				return [user, null]
-			}
+			let tlr = user && await query.user_all_tweets(user.id_str)
+			return [user, tlr]
 		},
-		function([user, data]) {
+		function([user, tlr]) {
 			scroll_add(draw_profile(user))
-			if (data) {
-				let x = new Timeline([data])
+			if (tlr) {
+				let x = new Timeline(tlr)
 				scroll_add(x.elem)
 			}
 		}
@@ -493,12 +373,9 @@ let views = [
 	// - rendered as a Timeline
 	new View(
 		['i', 'bookmarks'],
-		async (url) => {
-			let r = query.bookmarks()
-			return [r, await r.get()]
-		},
-		([tr, data]) => {
-			let x = new Timeline(data, tr)
+		(url) => query.bookmarks(),
+		function(tlr) {
+			let x = new Timeline(tlr)
 			scroll_add(x.elem)
 		},
 	),
@@ -507,46 +384,42 @@ let views = [
 	// this should be, perhaps, cached, and
 	// we definitely need to clean up this code
 	new View(
-		[/^@?\w+$/],
+		[USER_NAME],
 		async (url) => {
 			let user = await query.user(url.path[0])
 			if (user) {
-				let resp = query.user_tweets(user.id_str)
-				let resp2 = query.friends_following(user.id_str)
+				let tlr = query.user_tweets(user.id_str)
 				let resp3 = query.biz_profile(user.id_str)
-				return [user, resp, (await resp3).user_result_by_rest_id.result, await resp.get(), await resp2]
+				let resp2 = query.friends_following(user.id_str)
+				return [user, await tlr, await resp3, await resp2]
 			} else {
-				return [user, null]
+				return [user]
 			}
 		},
-		([user, resp, resp3, data, followo]) => {
-			if (resp3 && resp3.rest_id == user.id_str)
-				user._biz = resp3
+		([user, tlr, biz, followo]) => {
+			if (biz && biz.rest_id == user.id_str)
+				user._biz = biz
 			scroll_add(draw_profile(user))
 			if (followo) {
 				console.log("friends:", followo)
 			}
-			if (data) {
-				let x = new Timeline(data, resp)
+			if (tlr) {
+				let x = new Timeline(tlr)
 				scroll_add(x.elem)
 			}
 		}
 	),
 	new View(
-		[/^@?\w+$/, 'with_replies'],
+		[USER_NAME, 'with_replies'],
 		async (url) => {
 			let user = await query.user(url.path[0])
-			if (user) {
-				let resp = query.user_all_tweets(user.id_str)
-				return [user, resp, await resp.get()]
-			} else {
-				return [user, null, null]
-			}
+			let tlr = user && await query.user_all_tweets(user.id_str)
+			return [user, tlr]
 		},
-		([user, resp, data]) => {
+		([user, tlr]) => {
 			scroll_add(draw_profile(user))
-			if (data) {
-				let x = new Timeline(data, resp)
+			if (tlr) {
+				let x = new Timeline(tlr)
 				scroll_add(x.elem)
 			}
 		}
@@ -617,6 +490,7 @@ async function render(url) {
 	document.documentElement.classList.add('f-rendering')
 	document.documentElement.classList.remove('f-loading')
 	// i defer this so the color has time to change
+	console.log('requesting a render')
 	await blink();
 	try {
 		view.render(resp)

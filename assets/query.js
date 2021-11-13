@@ -40,14 +40,23 @@ let query_junk_2 = {
 	simple_quoted_tweet: true,
 }
 
+let v2_resp = resp => [resp.timeline, resp.globalObjects]
+
 class TimelineRequest {
 	#request //testing
 	#process
+	first
 	
 	constructor(request, process) {
 		this.#request = request
 		this.#process = process
+		// need to use .then() because constructor can't be async
+		return this.get().then(x => {
+			this.first = x;
+			return this;
+		})
 	}
+	
 	// maybe the Query should be stored in this class somehow
 	async get(cursor) { // returns [timeline, objects]
 		let resp = await this.#request(cursor)
@@ -128,13 +137,16 @@ class Query {
 		})
 	}
 	
-	followers(cursor, id) {
-		return this.get_graphql('Followers', {
-			userId: id,
-			count: 20,
-			cursor: cursor,
-			...query_junk,
-		})
+	followers(id) {
+		return new TimelineRequest((cursor) =>
+			this.get_graphql('Followers', {
+				userId: id,
+				count: 20,
+				cursor: cursor,
+				...query_junk,
+			}),
+			resp => resp.user.result.timeline.timeline,
+		)
 	}
 	
 	following(cursor, id) {
@@ -229,13 +241,16 @@ class Query {
 	}
 	
 	user_likes(cursor, id) {
-		return this.get_graphql('Likes', {
-			userId: id,
-			count: 20,
-			cursor: cursor,
-			withHighlightedLabel: true,
-			...query_junk,
-		})
+		return new TimelineRequest(cursor =>
+			this.get_graphql('Likes', {
+				userId: id,
+				count: 20,
+				...cursor&&{cursor},
+				withHighlightedLabel: true,
+				...query_junk,
+			}),
+			resp => [resp.user.result.timeline.timeline],
+		)
 	}
 	
 	// note: for some reason this does NOT fill in the 'ext' field!
@@ -247,20 +262,24 @@ class Query {
 				count: 20,
 				ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo",
 			}),
-			resp => [resp.timeline, resp.globalObjects],
+			v2_resp
 		)
 	}
 	
-	home(cursor) {
-		return this.get_v2('timeline/home.json', {
-			...query_junk_2,
-			earned: 1,
-			count: 3,
-			lca: true,
-			...cursor && {cursor: cursor},
-			ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo",
-		})
+	home() {
+		return new TimelineRequest(cursor =>
+			this.get_v2('timeline/home.json', {
+				...query_junk_2,
+				earned: 1,
+				count: 3,
+				lca: true,
+				...cursor && {cursor: cursor},
+				ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo",
+			}),
+			v2_resp,
+		)
 	}
+	
 	latest() {
 		return new TimelineRequest(cursor => 
 			this.get_v2('timeline/home_latest.json', {
@@ -271,7 +290,7 @@ class Query {
 				...cursor && {cursor: cursor},
 				ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo",
 			}),
-			resp => [resp.timeline, resp.globalObjects],
+			v2_resp,
 		)
 	}
 	
@@ -291,7 +310,7 @@ class Query {
 				spelling_corrections: 1,
 				ext: 'mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo,superFollowMetadata',
 			}),
-			resp => [resp.timeline, resp.globalObjects],
+			v2_resp,
 		)
 	}
 	
@@ -309,24 +328,49 @@ class Query {
 		})
 	}
 	
-	user_lists(cursor, id) {
-		return this.get_graphql('CombinedLists', {
-			userId: id,
-			count: 100,
-			...cursor&&{cursor},
-			withSuperFollowsUserFields:true,
-			withUserResults:true,withBirdwatchPivots:false,withReactionsMetadata:true,withReactionsPerspective:true,withSuperFollowsTweetFields:true,
+	user_lists(id) {
+		return new TimelineRequest((cursor)=>
+			this.get_graphql('CombinedLists', {
+				userId: id,
+				count: 100,
+				...cursor&&{cursor},
+				...query_junk,
+			}),
+			resp => [resp.user.result.timeline.timeline],
+		)
+	}
+	
+	user_lists(id) {
+		return new TimelineRequest((cursor)=>
+			this.get_graphql('CombinedLists', {
+				userId: id,
+				count: 100,
+				...cursor&&{cursor},
+				...query_junk,
+			}),
+			resp => [resp.user.result.timeline.timeline],
+		)
+	}
+
+	list(id) {
+		return this.get_graphql('ListByRestId', {
+			listId: id,
+			...query_junk,
 		})
 	}
 	
-	// this is used by the twitter.com/i/lists page
-	list(cursor, id) {
-		return this.get_graphql('ListLatestTweetsTimeline', {
-			listId: id,
-			count: 20,
-			withSuperFollowsUserFields:true,withUserResults:true,withBirdwatchPivots:false,withReactionsMetadata:false,withReactionsPerspective:false,withSuperFollowsTweetFields:true,
-		})
+	list_tweets(id) {
+		return new TimelineRequest(cursor => 
+			this.get_graphql('ListLatestTweetsTimeline', {
+				listId: id,
+				count: 20,
+				...cursor&&{cursor},
+				...query_junk,
+			}),
+			resp => [resp.list.tweets_timeline.timeline],
+		)
 	}
+	
 	//this is used when you click "add to lists" on a user's profile
 	// which for some reason has the url: https://mobile.twitter.com/i/lists/add_member (does not contain the user's name? so idk what the UI for this one looked like originally)
 	// returns all of your lists.
@@ -386,21 +430,24 @@ class Query {
 		})
 	}
 	
-	moment_tweets(cursor, id) {
-		return this.get_v2('live_event/timeline/'+id+'.json', {
-			...query_junk_2,
-			timeline_id: 'recap',
-			count: 20,
-			ext: 'mediaStats,highlightedLabel,voiceInfo,superFollowMetadata,signalsReactionMetadata,signalsReactionPerspective',
-			cursor: cursor,
-			urt: true,
-			get_annotations: true,
-		})
-		// return [resp.whatever.timeline, cursor=>this.moment_tweets(cursor, id)]
+	moment_tweets(id) {
+		return TimelineCursor((cursor) =>
+			this.get_v2('live_event/timeline/'+id+'.json', {
+				timeline_id: 'recap',
+				count: 20,
+				ext: 'mediaStats,highlightedLabel,voiceInfo,superFollowMetadata,signalsReactionMetadata,signalsReactionPerspective',
+				cursor: cursor,
+				urt: true,
+				get_annotations: true,
+				...query_junk_2,
+			}),
+			v2_resp
+		)
 	}
 	
-	biz_profile(user) {
-		return this.get_graphql('BizProfileFetchUser', {rest_id: user})
+	async biz_profile(user) {
+		let resp = await this.get_graphql('BizProfileFetchUser', {rest_id: user})
+		return resp.user_result_by_rest_id.result
 	}
 	
 }

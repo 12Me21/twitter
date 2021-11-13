@@ -191,15 +191,20 @@ document.body.innerHTML = `
 						<L->📅<time data-id=joined class='pre'></time></L->
 					</L->
 					<L- class='Row flex-wrap things'>
-						<L->followers: <span data-id=follower_count class='pre'></span></L->
 						<button data-id=follow_button></button>
-						<L- data-id=follow_note></L->
+						<span data-id=follow_note></span>
 					</L->
-					<L- class='Row flex-wrap things'>
-						<L->tweets: <span data-id=tweet_count class='pre'></span></L->
-					</l->
 				</L->
 			</L->
+		</L->
+		<L- class='Row flex-wrap tabs'>
+			<a data-id=tab_tweets>tweets<br><span data-id=tweet_count class='pre'></span></a>
+			<a data-id=tab_replies>+replies</a>
+			<a data-id=tab_media>media</a>
+			<a data-id=tab_likes>likes</a>
+			<a data-id=tab_followers>followers<br><span data-id=follower_count class='pre'></span></a>
+			<a data-id=tab_following>following<br></a>
+			<a data-id=tab_lists>lists</a>
 		</L->
 		<L- data-id=bar>.</L->
 	</tl-profile>
