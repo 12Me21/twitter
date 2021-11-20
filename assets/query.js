@@ -29,13 +29,13 @@ let query_junk_2 = {
 	include_cards: 1,
 	include_ext_alt_text: true,
 	include_quote_count: true,
-	include_replypp_count: 1,
+	include_reply_count: 1,
 	tweet_mode: 'extended',
 	include_entities: true,
 	include_user_entities: true,
 	include_ext_media_color: true,
 	include_ext_media_availability: true,
-	//include_ext_has_nft_avatar: true,
+	include_ext_has_nft_avatar: true,
 	send_error_codes: true,
 	simple_quoted_tweet: true,
 }
@@ -271,7 +271,7 @@ class Query {
 			this.get_v2('timeline/home.json', {
 				...query_junk_2,
 				earned: 1,
-				count: 3,
+				count: 20,
 				lca: true,
 				...cursor && {cursor: cursor},
 				ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo",
@@ -285,7 +285,7 @@ class Query {
 			this.get_v2('timeline/home_latest.json', {
 				...query_junk_2,
 				earned: 1,
-				count: 3,
+				count: 20,
 				lca: true,
 				...cursor && {cursor: cursor},
 				ext: "mediaStats,highlightedLabel,signalsReactionMetadata,signalsReactionPerspective,voiceInfo",

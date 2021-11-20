@@ -326,6 +326,9 @@ function draw_names(user, no_link) {
 	let ids = template($Usernames)
 	ids.name.textContent = unescape_html(user.name)
 	ids.username.textContent = "@"+user.screen_name
+	if (user.verified) {
+		ids.badges.append(template($Icon_verified).$)
+	}
 	//let profile = profile_url(user.screen_name)
 	/*if (!no_link) {
 		make_link(ids.name_link, profile)

@@ -250,3 +250,7 @@ a[href] {
 .reactions {
 	column-gap: 0.2rem;
 }
+
+.badges > svg {
+	width: 1rem;
+}
