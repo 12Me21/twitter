@@ -32,14 +32,18 @@ click_actions = [
 		}
 	),
 	new ClickAction(
-		elem => elem.tagName=='TL-CURSOR',
+		elem => !!elem.dataset?.cursor,
 		async function(elem) {
 			let t = elem.x_timeline
-			// todo: disable while loading
-			let [i,o] = await t.gen.get(elem.dataset.cursor)
-			t.add_instructions(i,o)
 			let entry = elem.closest('tl-entry') ?? elem
+			
+			elem.remove()
+			
+			let [i,o] = await t.gen.get(elem.dataset.cursor)
+			
 			entry.remove()
+			
+			t.add_instructions(i,o)
 		},
 	),
 	new ClickAction(

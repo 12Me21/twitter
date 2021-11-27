@@ -84,15 +84,21 @@ function search_url(query) {
 }
 
 // Apply formatting to text
-// this is used for adding links, images, etc. to tweet text (as well as user profile text)
-// `text`: raw text
-// `entities`: tweet entities table
-// `ext`: (optional) tweet extended entities table
-// `range`: (optional) display_text_range (TODO)
-// these fields are purely used for determining image filenames:
-// `tweet`: the entire tweet object
-// `user`: the user object
-function format_text(text, entities, ext, range, tweet, user) {
+// this is used for adding links, images, etc. to tweet text (as well as
+// return: 
+// if `separate_media` - [DocumentFragment, Node]
+// else - DocumentFragment
+function format_text(
+	text, // raw text
+	entities, // tweet entities table
+	ext, // (optional) tweet extended entities table
+	range, // (optional) display_text_range (TODO)
+	// these fields are purely used for determining image filenames:	
+	tweet,
+	user,
+	// if true, return just a single docfrag instead of separate media
+	separate_media
+) {
 	let frag = document.createDocumentFragment()
 	if (typeof text != 'string')
 		return frag
@@ -151,12 +157,16 @@ function format_text(text, entities, ext, range, tweet, user) {
 		if (elem)
 			frag.append(elem)
 	}
+	let div = null
 	if (media.length) {
-		let div = document.createElement('media-box')
+		div = document.createElement('media-box')
 		for (let elem of media)
 			div.append(elem)
-		frag.append(div)
+		if (!separate_media)
+			frag.append(div)
 	}
+	if (separate_media)
+		return [frag, div]
 	return frag
 }
 
@@ -402,8 +412,31 @@ function draw_user(
 // return Node
 function draw_tweet(
 	id, // String (numeric)
-	objects // object map: numericstring -> tweet
+	objects, // object map: numericstring -> tweet
+	sc, // twitter socialContext object (optional)
 ) {
+	let notes = []
+	if (sc) {
+		console.log("sc:", sc)
+		if (sc.generalContext) {
+			let gc = sc.generalContext
+			let icon = {
+				Conversation: $Icon_reply,
+				Like: $Icon_like,
+			}[gc.contextType]
+			let x = document.createDocumentFragment()
+			if (icon)
+				x.append(template(icon).$)
+			x.append(gc.text)
+			notes.push(x)
+		}
+		if (sc.topicContext) {
+			let t = objects.topics[sc.topicContext.topicId]
+			if (t)
+				notes.push("Topic: "+t.name)
+		}
+	}
+	
 	let tweet = objects.tweets[id]
 	if (!tweet) {
 		return template($MissingTweet).main
@@ -414,14 +447,24 @@ function draw_tweet(
 	// if this is a retweet, replace it with the original tweet and add a note
 	if (tweet.retweeted_status_id_str) {
 		let retweeter = objects.users[tweet.user_id_str]
+		
+		let x = template($NoteRetweeted)
+		x.names.replaceWith(draw_names(retweeter))
+		x.time.textContent = format_date(new Date(tweet.created_at))
+		notes.push(x.$)
+		
 		tweet = objects.tweets[tweet.retweeted_status_id_str]
-		ids.note.append(template($Icon_retweeted).$)
-		ids.note.append("Retweeted by ")
-		ids.note.append(draw_names(retweeter))
 		ids.main.dataset.rt_id = tweet.id_str
-	} else {
-		ids.note.remove()
 	}
+	
+	if (notes.length) {
+		for (let x of notes) {
+			let n = template($TweetNote).main
+			n.append(x)
+			ids.note.append(n)
+		}
+	} else
+		ids.note.remove()
 	
 	if (tweet.in_reply_to_status_id_str) {
 		ids.reply_label.textContent = "R"
@@ -448,18 +491,39 @@ function draw_tweet(
 		let tc = ids.translated_contents
 		ids.translate_button.onclick = async function() {
 			let json = await query.translate_tweet(tweet.id_str)
-			tc.replaceChildren(format_text(json.translation, json.entities))
+			if (json) {
+				tc.replaceChildren(format_text(json.translation, json.entities))
+			}
 		}
 	} else {
 		ids.translate_button.remove()
 		ids.translated_contents.remove()
 	}
 	
-	ids.contents.replaceChildren(format_text(tweet.full_text, tweet.entities, tweet.extended_entities, tweet.display_text_range, tweet, user))
+	let [content, media] = format_text(tweet.full_text, tweet.entities, tweet.extended_entities, tweet.display_text_range, tweet, user, true)
+	
+	ids.contents.replaceChildren(content)
+	// this happens if the tweet only contains images
+	if (ids.contents.childNodes.length==0)
+		ids.contents.remove()
+	
+	if (media)
+		ids.media.replaceWith(media)
+	else
+		ids.media.remove()
+	
 	// if this is a quote retweet, render the quoted tweet
 	if (tweet.quoted_status_id_str) {
-		ids.contents.append(draw_tweet(tweet.quoted_status_id_str, objects))
+		ids.quote.replaceWith(draw_tweet(tweet.quoted_status_id_str, objects))
+	} else
+		ids.quote.remove()
+	
+	// draw card
+	if (tweet.card) {
+		let card = draw_card(tweet.card)
+		ids.contents.append(card)
 	}
+	
 	// regular interaction counts 
 	let x = document.createDocumentFragment()
 	x.append(draw_reaction(template($Icon_reply).$, 'reply', tweet.reply_count))
@@ -485,19 +549,15 @@ function draw_tweet(
 	x.append(draw_reaction(template($Icon_bookmark).$, 'bookmark', undefined))
 	ids.reactions.replaceWith(x)
 	// todo: gear icon should display a list of like
-	// pin, bookmark, delete, etc.
-	
-	if (tweet.card) {
-		let card = draw_card(tweet.card)
-		ids.contents.append(card)
-	}
+	// pin, delete, etc.
 	
 	return ids.main
 }
 
 // return Node
 function draw_profile(
-	user // twitter user
+	user, // twitter user
+	extra
 ) {
 	if (!user) {
 		return draw_unknown("Invalid User", result)
@@ -535,6 +595,11 @@ function draw_profile(
 	ids.follow_button.textContent = ["not following", "following"][user.following?1:0]//[["not following", "follows you"],["following", "mutual"]][user.following?1:0][user.followed_by?1:0]
 	if (user.followed_by)
 		ids.follow_note.textContent = "follows you"
+	if (user._friends) {
+		// todo: make thsi better
+		let text = "also followed by "+user._friends.map(x=>"@"+x.screen_name).join(", ")
+		ids.friends.textContent = text
+	}
 	
 	if (user.profile_link_color!='1DA1F2') {
 		ids.bar.style.backgroundColor = "#"+user.profile_link_color

@@ -105,27 +105,7 @@ class View {
 		this.path = path
 		this.request = request
 		this.render = render
-		//if (render)
-		//	this.render = render
 	}
-	
-	/*request(...args) {
-		if (this.hasOwnProperty('render')) {
-			return this.req(...args)
-		} else {
-			this.gen = this.req(...args)
-			let v = this.gen.next()
-			this.all = Promise.all(v.value)
-			return this.all
-		}
-	}
-	
-	render() {
-		console.log("gen render?")
-		this.gen.next(this.all)
-		this.gen.return()
-		this.gen = undefined
-	}*/
 	
 	check_path(url) {
 		if (url.path.length!=this.path.length)
@@ -159,13 +139,10 @@ let NUMBER = /^\d+$/
 let views = [
 	//
 	new View(
-		[true, 'status', /^\d+$/, 'retweets', 'with_comments'],
-		async (url) => {
-			let r = query.quote_tweets(url.path[2])
-			return [r, await r.get()]
-		},
-		function([r, data]) {
-			let x = new Timeline(data[0], data[1], r)
+		[USER_NAME, 'status', NUMBER, 'retweets', 'with_comments'],
+		(url) => query.quote_tweets(url.path[2]),
+		function(tlr) {
+			let x = new Timeline(tlr)
 			scroll_add(x.elem)
 		}
 	),
@@ -300,7 +277,6 @@ let views = [
 			}
 		}
 	),
-	// twitter.com/<name>/status/<id>
 	new View(
 		[USER_NAME, 'status', NUMBER],
 		(url) => query.tweet(url.path[2]),
@@ -309,18 +285,6 @@ let views = [
 			scroll_add(x.elem)
 		}
 	),
-	/*new View(
-		[USER_NAME, 'status', NUMBER],
-		function*(url) {
-			let tlr = query.tweet(url.path[2])
-			;[tlr] = yield [tlr]
-			console.log('gen render real?', tlr)
-			let x = new Timeline(tlr)
-			
-			scroll_add(x.elem)
-		}
-	),*/
-	// twitter.com/i/latest
 	new View(
 		['i', 'latest'],
 		(url) => query.latest(),
@@ -329,7 +293,6 @@ let views = [
 			scroll_add(x.elem)
 		}
 	),
-	// twitter.com/home
 	new View(
 		['home'],
 		(url) => query.home(),
@@ -338,7 +301,6 @@ let views = [
 			scroll_add(x.elem)
 		}
 	),
-	// twitter.com/notifications
 	new View(
 		['notifications'],
 		(url) => query.notifications(),
@@ -347,7 +309,6 @@ let views = [
 			scroll_add(x.elem)
 		}
 	),
-	// twitter.com/<name>/followers
 	new View(
 		[USER_NAME, 'followers'],
 		async function(url) {
@@ -363,7 +324,6 @@ let views = [
 			}
 		}
 	),
-	// twitter.com/<name>/likes
 	new View(
 		[USER_NAME, 'likes'],
 		async function(url) {
@@ -379,11 +339,6 @@ let views = [
 			}
 		}
 	),
-	// twitter.com/i/bookmarks
-	// need to smoothen the process of
-	// - <query request function>
-	// - enclosed in a TimelineRequest instance
-	// - rendered as a Timeline
 	new View(
 		['i', 'bookmarks'],
 		(url) => query.bookmarks(),
@@ -403,19 +358,20 @@ let views = [
 			if (user) {
 				let tlr = query.user_tweets(user.id_str)
 				let resp3 = query.biz_profile(user.id_str)
-				let resp2 = query.friends_following(user.id_str)
+				let resp2 = query.friends_following(user.id_str, 10)
 				return [user, await tlr, await resp3, await resp2]
 			} else {
 				return [user]
 			}
 		},
 		([user, tlr, biz, followo]) => {
-			if (biz && biz.rest_id == user.id_str)
-				user._biz = biz
-			scroll_add(draw_profile(user))
-			if (followo) {
-				console.log("friends:", followo)
+			if (user) {
+				if (biz?.rest_id == user.id_str)
+					user._biz = biz
+				if (followo?.users?.length)
+					user._friends = followo.users
 			}
+			scroll_add(draw_profile(user))
 			if (tlr) {
 				let x = new Timeline(tlr)
 				scroll_add(x.elem)

@@ -11,7 +11,7 @@ button, a {
 html {
 	font-family: roboto, noto-sans, twemoji, twitma;
 	line-height: 1.15;
-	--sidebar-width: 6rem;
+	--sidebar-width: 8rem;
 }
 
 * {
@@ -210,12 +210,13 @@ body {
 }
 
 side-bar {
-	/*width: var(--sidebar-width);*/
+	width: var(--sidebar-width);
 	flex-shrink: 0;
 	position: sticky;
 	height: 100%;
 	top: 0;
-	border-right:2px solid white;
+	margin-right: 2px;
+	/*border-right: 2px solid white;*/
 }
 
 html.f-loading body {
@@ -285,4 +286,9 @@ svg.icon {
 /* just a good default so SVGs dont become infinitely big */
 svg {
 	width: 1rem;
+}
+
+.cursor {
+	display: block;
+	width: 100%;
 }

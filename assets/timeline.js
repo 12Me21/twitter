@@ -38,7 +38,7 @@ class Timeline {
 			}
 		}
 	}
-
+	
 	draw_cursor(cursor) {
 		let ids = template($Cursor)
 		ids.main.dataset.cursor = cursor.value
@@ -159,26 +159,7 @@ class Timeline {
 				if (content.tweet) {
 					if (content.tweet.promotedMetadata)
 						return null
-					let elem = draw_tweet(content.tweet.id, objects)
-					let sc = content.tweet.socialContext
-					// todo: draw_context_label function
-					if (sc) {
-						if (sc.generalContext) {
-							let x = document.createElement('div')
-							x.append(sc.generalContext.text)
-							x.append(elem)
-							return x
-						} else if (sc.topicContext) {
-							let t = objects.topics[sc.topicContext.topicId]
-							if (t) {
-								let x = document.createElement('div')
-								x.append("Topic: "+t.name)
-								x.append(elem)
-								return x
-							}
-						}
-					}
-					return elem
+					return draw_tweet(content.tweet.id, objects, content.tweet.socialContext)
 				} else if (content.notification) {
 					return draw_notification(objects.notifications[content.notification.id], objects)
 				}
