@@ -4,6 +4,10 @@
 	height: auto;
 }
 
+button, a {
+	cursor: pointer;
+}
+
 html {
 	font-family: roboto, noto-sans, twemoji, twitma;
 	line-height: 1.15;
@@ -20,7 +24,7 @@ html {
 }
 
 .avatar {
-	border: 1px solid black;
+	border: 1px solid white;
 	aspect-ratio: 1/1;
 }
 
@@ -70,7 +74,7 @@ media-box > media-item > video {
 
 tl-tweet {
 	display: block;
-	border: 1px solid gray;
+	border: 2px solid #bbb;
 }
 
 tl-profile {
@@ -120,13 +124,23 @@ a:hover {
 	text-decoration: underline;
 }
 
+a, a:visited {
+	color: #009;
+}
+
 .reaction.own-reaction {
-	background-color: lightblue;
+	background-color: #c7f;
 }
 
 .reaction {
 	padding: 0.1rem;
 	display: flex;
+	border: 1px solid purple;
+	background-color: #edf;
+}
+
+.reaction:hover {
+	background-color: purple;
 }
 
 .reaction > span > svg {
@@ -184,8 +198,8 @@ main-scroller > scroll-inner {
 	width: 6in;
 	/*margin-left: var(--sidebar-width);*/
 	margin-right: auto;
-	border-left: 1px solid gray;
-	border-right: 1px solid gray;
+	/*border-left: 1px solid gray;
+	border-right: 1px solid gray;*/
 	min-height: 100%;
 	height: fit-content;
 }
@@ -201,6 +215,7 @@ side-bar {
 	position: sticky;
 	height: 100%;
 	top: 0;
+	border-right:2px solid white;
 }
 
 html.f-loading body {
@@ -228,7 +243,7 @@ image-viewer > img {
 }
 
 tl-entry {
-	border: 10px inset pink;
+	/*margin-bottom: 8px;*/
 }
 
 .nft-avatar {
@@ -237,7 +252,7 @@ tl-entry {
 
 a[href] {
 	background-color: rgba(0,128,255,0.2);
-	/*background-image: url("chrome-extension://__MSG_@@extension_id__/assets/dither.png");*/
+	/*background-image: url("chrome-extension://fnpbhnkodjoeohgpkcfhmfplkfdimoco/assets/dither.png");*/
 }
 
 .tabs > * {
@@ -248,9 +263,26 @@ a[href] {
 }
 
 .reactions {
-	column-gap: 0.2rem;
+	margin: 1px
 }
 
 .badges > svg {
+	width: 1rem;
+}
+
+img[data-big_src] {
+	cursor: zoom-in;
+}
+
+time-line{
+	row-gap: 8px;
+}
+
+svg.icon {
+	width: 1rem;
+}
+
+/* just a good default so SVGs dont become infinitely big */
+svg {
 	width: 1rem;
 }

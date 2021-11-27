@@ -1,4 +1,7 @@
-function template(t) {
+// return Object map: String -> Node
+function template(
+	t // HTMLTemplateElement
+) {
 	let frag = t.content.cloneNode(true)
 	let ids = {
 		$: frag
@@ -10,18 +13,28 @@ function template(t) {
 	return ids
 }
 
-function profile_url(username) {
+// return String
+function profile_url(
+	username // String (twitter username)
+) {
 	// prepend @ if the name collides with another page
 	if (/^(login|logout|home|i|compose|notifications|search|account)$/.test(username))
 		username = "@"+username
 	return "https://twitter.com/"+username
 }
 
-function unescape_html(text) {
+// return String
+function unescape_html(
+	text // String
+) {
 	return text.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&#39;/g, "'").replace(/&amp;/g, "&")
 }
 
-function draw_link(url, text) {
+// return Node
+function draw_link(
+	url, // String
+	text // String
+) {
 	let elem = document.createElement('a')
 	elem.className = 'pre'
 	elem.textContent = text
@@ -31,7 +44,11 @@ function draw_link(url, text) {
 
 const MAX_BITRATE = 2000000
 
-function draw_media(value, name) {
+// return Node
+function draw_media(
+	value,
+	name
+) {
 	if (value.type=='photo') {
 		return draw_image(value, name)
 	} else if (value.type=='video') {
@@ -322,13 +339,19 @@ function draw_unknown(title, data) {
 	return ids.main
 }
 
-function draw_names(user, no_link) {
+// `user` twitter_user -
+// `return` DocumentFragment -
+function draw_names(user) {
 	let ids = template($Usernames)
 	ids.name.textContent = unescape_html(user.name)
 	ids.username.textContent = "@"+user.screen_name
-	if (user.verified) {
+	if (user.verified)
 		ids.badges.append(template($Icon_verified).$)
-	}
+	if (user.protected)
+		ids.badges.append(template($Icon_protected).$)
+	// todo: better css so we don't need to...
+	if (ids.badges.children.length == 0)
+		ids.badges.remove()
 	//let profile = profile_url(user.screen_name)
 	/*if (!no_link) {
 		make_link(ids.name_link, profile)
@@ -337,7 +360,13 @@ function draw_names(user, no_link) {
 	return ids.$
 }
 
-function draw_reaction(icon, type, count, pressed) {
+// return Node
+function draw_reaction(
+	icon, // Node
+	type, // String
+	count, // Number
+	pressed // Boolean
+) {
 	let r = template($ReactButton)
 	r.icon.append(icon)
 	if (count != undefined) {
@@ -351,7 +380,10 @@ function draw_reaction(icon, type, count, pressed) {
 	return r.main	
 }
 
-function draw_user(user) {
+// return Node
+function draw_user(
+	user // twitter user
+) {
 	let ids = template($TimelineUser)
 	ids.names.replaceWith(draw_names(user))
 	ids.bio.append(format_text(user.description, user.entities.description, null, null, null, user))
@@ -366,7 +398,12 @@ function draw_user(user) {
 // fill_image_bg -- from palette
 
 // idea: maybe put like/rt/reply count under avtaar?
-function draw_tweet(id, objects) {
+
+// return Node
+function draw_tweet(
+	id, // String (numeric)
+	objects // object map: numericstring -> tweet
+) {
 	let tweet = objects.tweets[id]
 	if (!tweet) {
 		return template($MissingTweet).main
@@ -378,6 +415,7 @@ function draw_tweet(id, objects) {
 	if (tweet.retweeted_status_id_str) {
 		let retweeter = objects.users[tweet.user_id_str]
 		tweet = objects.tweets[tweet.retweeted_status_id_str]
+		ids.note.append(template($Icon_retweeted).$)
 		ids.note.append("Retweeted by ")
 		ids.note.append(draw_names(retweeter))
 		ids.main.dataset.rt_id = tweet.id_str
@@ -401,7 +439,7 @@ function draw_tweet(id, objects) {
 	//let col = user.profile_image_extensions.mediaColor.r.ok.palette[0].rgb
 	//ids.avatar.style.backgroundColor = `rgb(${col.red},${col.green},${col.blue})`
 	make_link(ids.user_link, profile_url(user.screen_name))
-	ids.user_names.replaceWith(draw_names(user, true))
+	ids.user_names.replaceWith(draw_names(user))
 	
 	make_link(ids.tweet_link, profile_url(user.screen_name)+`/status/${tweet.id_str}`)
 	
@@ -457,66 +495,73 @@ function draw_tweet(id, objects) {
 	return ids.main
 }
 
-function draw_profile(user) {
-	if (user) {
-		let ids = template($Profile)
-		
-		if (user.profile_banner_url) {
-			ids.banner.src = user.profile_banner_url+"/1500x500"
-		} else {
-			ids.banner.hidden = true
-		}
-		
-		ids.avatar.src = user.profile_image_url_https.replace('_normal', '')
-		ids.avatar.dataset.big_src = ids.avatar.src
-		
-		ids.names.replaceWith(draw_names(user))
-		ids.bio.append(format_text(user.description, user.entities.description, null, null, null, user))
-		if (user.url)
-			ids.website.append(format_text(user.url, user.entities.url, null, null, null, user))
-		else 
-			ids.website.parentNode.remove()
-		if (user.location)
-			ids.location.textContent = user.location
-		else
-			ids.location.parentNode.remove()
-		ids.joined.textContent = format_date(new Date(user.created_at))
-		//console.log('draw profile', user)
-		ids.follower_count.textContent = user.normal_followers_count
-		ids.tweet_count.textContent = user.statuses_count
-		
-		ids.follow_button.textContent = ["not following", "following"][user.following?1:0]//[["not following", "follows you"],["following", "mutual"]][user.following?1:0][user.followed_by?1:0]
-		if (user.followed_by)
-			ids.follow_note.textContent = "follows you"
-		
-		if (user.profile_link_color!='1DA1F2') {
-			ids.bar.style.backgroundColor = "#"+user.profile_link_color
-		} else {
-			ids.bar.remove()
-		}
-		
-		if (user.ext_has_nft_avatar)
-			ids.avatar.classList.add('nft-avatar')
-		
-		if (user._biz) {
-			for (let x of user._biz.profilemodules.v1) {
-				
-			}
-		}
-		
-		let base = "https://twitter.com/"+user.screen_name
-		ids.tab_tweets.href = base
-		ids.tab_replies.href = base+"/with_replies"
-		ids.tab_media.href = base+"/media"
-		ids.tab_likes.href = base+"/likes"
-		ids.tab_followers.href = base+"/followers"
-		ids.tab_following.href = base+"/following"
-		ids.tab_lists.href = base+"/lists"
-		
-		return ids.main
-		//} else if (result && result.__typename=='UserUnavailable') {
-		//	return document.createTextNode("user unavailalbe: "+result.reason)
-	} else {
+// return Node
+function draw_profile(
+	user // twitter user
+) {
+	if (!user) {
 		return draw_unknown("Invalid User", result)
 	}
+	
+	let ids = template($Profile)
+	
+	if (user.profile_banner_url) {
+		ids.banner.src = user.profile_banner_url+"/1500x500"
+		ids.banner.dataset.big_src = user.profile_banner_url+"/1500x500"
+		ids.banner.dataset.filename = `@${user.screen_name}-banner`
+	} else {
+		ids.banner.hidden = true
+	}
+	
+	ids.avatar.src = user.profile_image_url_https.replace('_normal', '')
+	ids.avatar.dataset.big_src = ids.avatar.src
+	ids.avatar.dataset.filename = `@${user.screen_name}-avatar`
+	
+	ids.names.replaceWith(draw_names(user))
+	ids.bio.append(format_text(user.description, user.entities.description, null, null, null, user))
+	if (user.url)
+		ids.website.append(format_text(user.url, user.entities.url, null, null, null, user))
+	else 
+		ids.website.parentNode.remove()
+	if (user.location)
+		ids.location.textContent = user.location
+	else
+		ids.location.parentNode.remove()
+	ids.joined.textContent = format_date(new Date(user.created_at))
+	//console.log('draw profile', user)
+	ids.follower_count.textContent = user.normal_followers_count
+	ids.tweet_count.textContent = user.statuses_count
+	
+	ids.follow_button.textContent = ["not following", "following"][user.following?1:0]//[["not following", "follows you"],["following", "mutual"]][user.following?1:0][user.followed_by?1:0]
+	if (user.followed_by)
+		ids.follow_note.textContent = "follows you"
+	
+	if (user.profile_link_color!='1DA1F2') {
+		ids.bar.style.backgroundColor = "#"+user.profile_link_color
+	} else {
+		ids.bar.remove()
+	}
+	
+	if (user.ext_has_nft_avatar)
+		ids.avatar.classList.add('nft-avatar')
+	
+	// todo: this is used for like, newsletters
+	if (user._biz) {
+		for (let x of user._biz.profilemodules.v1) {
+			
+		}
+	}
+	
+	let base = "https://twitter.com/"+user.screen_name
+	ids.tab_tweets.href = base
+	ids.tab_replies.href = base+"/with_replies"
+	ids.tab_media.href = base+"/media"
+	ids.tab_likes.href = base+"/likes"
+	ids.tab_followers.href = base+"/followers"
+	ids.tab_following.href = base+"/following"
+	ids.tab_lists.href = base+"/lists"
+	
+	return ids.main
+	//} else if (result && result.__typename=='UserUnavailable') {
+	//	return document.createTextNode("user unavailalbe: "+result.reason)
 }

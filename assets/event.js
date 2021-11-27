@@ -38,7 +38,8 @@ click_actions = [
 			// todo: disable while loading
 			let [i,o] = await t.gen.get(elem.dataset.cursor)
 			t.add_instructions(i,o)
-			elem.remove()
+			let entry = elem.closest('tl-entry') ?? elem
+			entry.remove()
 		},
 	),
 	new ClickAction(
@@ -64,6 +65,7 @@ click_actions = [
 			let id = tweet.dataset.id
 			// this is repetitive
 			if (type=='retweet') {
+				id = tweet.dataset.rt_id ?? id
 				if (elem.classList.contains('own-reaction')) {
 					elem.disabled = true
 					mutate.delete_retweet(id).then(x=>{
