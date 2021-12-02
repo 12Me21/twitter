@@ -112,15 +112,17 @@ class Timeline {
 				result.legacy.retweeted_status_id_str = this.tweet_to_v2(result.legacy.retweeted_status_result.result, objects)
 				delete result.legacy.retweeted_status_result
 			}
+			result.legacy.ext = {}
 			if (result.reactionMetadata) {
-				result.legacy.ext = {
-					signalsReactionMetadata: { r: { ok: {
-						reactionTypeMap: result.reactionMetadata.reactionTypeMap.map(x=>[x.type,x.count])
-					}}},
-					signalsReactionPerspective: { r: {
-						ok: result.reactionPerspective
-					}},
-				}
+				result.legacy.ext.signalsReactionMetadata = { r: { ok: {
+					reactionTypeMap: result.reactionMetadata.reactionTypeMap.map(x=>[x.type,x.count])
+				}}}
+				result.legacy.ext.signalsReactionPerspective = { r: {
+					ok: result.reactionPerspective
+				}}
+			}
+			if (result.downvotePerspective) {
+				result.legacy.ext.downvotePerspective = result.downvotePerspective
 			}
 			if (result.quoted_status_result) {
 				this.tweet_to_v2(result.quoted_status_result.result, objects)

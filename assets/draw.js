@@ -417,7 +417,6 @@ function draw_tweet(
 ) {
 	let notes = []
 	if (sc) {
-		console.log("sc:", sc)
 		if (sc.generalContext) {
 			let gc = sc.generalContext
 			let icon = {
@@ -530,6 +529,10 @@ function draw_tweet(
 	x.append(draw_reaction(template($Icon_quote).$, 'quote', tweet.quote_count))
 	x.append(draw_reaction(template($Icon_retweet).$, 'retweet', tweet.retweet_count, tweet.retweeted))
 	x.append(draw_reaction(template($Icon_like).$, 'like', tweet.favorite_count, tweet.favorited))
+	x.append(draw_reaction(template($Icon_downvote).$, 'downvote', null, tweet.ext?.downvotePerspective?.isDownvoted))
+	x.append(draw_reaction(template($Icon_bookmark).$, 'bookmark', undefined))
+	
+	
 	// draw reactions (secret)
 	/*if (tweet.ext && tweet.ext.signalsReactionMetadata) {
 		if (!auth.guest) {
@@ -546,7 +549,7 @@ function draw_tweet(
 			}
 		}
 	}*/
-	x.append(draw_reaction(template($Icon_bookmark).$, 'bookmark', undefined))
+	
 	ids.reactions.replaceWith(x)
 	// todo: gear icon should display a list of like
 	// pin, delete, etc.

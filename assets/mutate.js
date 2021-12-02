@@ -128,6 +128,13 @@ class Mutate {
 	// react(id, false) - remove reaction
 	// react(id, reaction_type) - use a different rection (i.e. "Hmm", "Sad", etc.)
 	react(id, type='Like') {
+		if (type=='Like') {
+			// added this as a sp case bc it was silently failing sometimes
+			// best not to rely on an unfinished endpoint hm?
+			return this.post_graphql('FavoriteTweet', {
+				tweet_id: id,
+			})
+		}
 		return this.post_graphql('CreateTweetReaction', {
 			tweet_id: id,
 			reaction_type: type,
@@ -142,6 +149,18 @@ class Mutate {
 		})
 		// on success: (regardless of whether reaction existed)
 		// {data:{delete_reaction: {success:true}}}
+	}
+	
+	downvote(id) {
+		return this.post_graphql('CreateTweetDownvote', {
+			tweet_id: id,
+		})
+	}
+	
+	delete_downvote(id) {
+		return this.post_graphql('DeleteTweetDownvote', {
+			tweet_id: id,
+		})
 	}
 	
 	pin_tweet(id) {

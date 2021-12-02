@@ -11,6 +11,8 @@ let query_junk = {
 	withUserResults: true,
 	withNftAvatar: true,
 	withVoice: false, // ??
+	withDownvotePerspective: true,
+	withDownvoteMetadata: true,// probably not
 }
 
 // what the fuck are these parameters
@@ -145,7 +147,7 @@ class Query {
 				cursor: cursor,
 				...query_junk,
 			}),
-			resp => resp.user.result.timeline.timeline,
+			resp => [resp.user.result.timeline.timeline],
 		)
 	}
 	
@@ -240,7 +242,7 @@ class Query {
 		})
 	}
 	
-	user_likes(cursor, id) {
+	user_likes(id) {
 		return new TimelineRequest(cursor =>
 			this.get_graphql('Likes', {
 				userId: id,
@@ -340,18 +342,6 @@ class Query {
 		)
 	}
 	
-	user_lists(id) {
-		return new TimelineRequest((cursor)=>
-			this.get_graphql('CombinedLists', {
-				userId: id,
-				count: 100,
-				...cursor&&{cursor},
-				...query_junk,
-			}),
-			resp => [resp.user.result.timeline.timeline],
-		)
-	}
-
 	list(id) {
 		return this.get_graphql('ListByRestId', {
 			listId: id,
@@ -374,18 +364,17 @@ class Query {
 	//this is used when you click "add to lists" on a user's profile
 	// which for some reason has the url: https://mobile.twitter.com/i/lists/add_member (does not contain the user's name? so idk what the UI for this one looked like originally)
 	// returns all of your lists.
-	list_ownerships(cursor, my_id, user_id) {
-		return this.get_graphql('ListOwnerships', {
-			userId: my_id,
-			isListMemberTargetUserId: user_id,
-			count: 20,
-			withSuperFollowsUserFields: true,
-			withUserResults: false,
-			withBirdwatchPivots: false,
-			withReactionsMetadata: false,
-			withReactionsPerspective: false,
-			withSuperFollowsTweetFields: true
-		})
+	list_ownerships(user_id) {
+		return new TimelineRequest(cursor =>
+			this.get_graphql('ListOwnerships', {
+				/*userId: my_id,*/
+				isListMemberTargetUserId: user_id,
+				count: 20,
+				...cursor&&{cursor},
+				...query_junk,
+			}),
+			resp => [resp.user.result.timeline.timeline],
+		)
 		// data.user.result.timeline.timeline contains render instructions
 		// the `is_member` field is `true` for lists which contain the target user.
 	}
@@ -465,4 +454,18 @@ class Query {
 			resp => [resp.timeline, resp.globalObjects],
 		)
 	}
+	
+	user_media(id) {
+		return new TimelineRequest(cursor=>
+			this.get_graphql('UserMedia', {
+				userId: id,
+				count: 20,
+				...cursor&&{cursor},
+				//withV2Timeline: true,
+				...query_junk,
+			}),
+			resp => [resp.user.result.timeline.timeline],
+		)
+	}
+	//{"userId":"1114551524170973184","count":20,"withTweetQuoteCount":false,"includePromotedContent":false,"withSuperFollowsUserFields":true,"withUserResults":true,"withBirdwatchPivots":false,"withDownvotePerspective":false,"withReactionsMetadata":false,"withReactionsPerspective":false,"withSuperFollowsTweetFields":true,"withClientEventToken":false,"withBirdwatchNotes":false,"withVoice":true,"withV2Timeline":false}
 }

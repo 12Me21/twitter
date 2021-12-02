@@ -47,7 +47,7 @@ async function onload() {
 		let tokens = accts[name]
 		x.onclick = function() {
 			let a = new Auth(auth_app)
-			a.init_from_tokens(tokens.twitter_sess, tokens.auth_token)
+			a.init_from_tokens(tokens.twitter_sess, tokens.auth_token, tokens.uid)
 			swap_accounts(a)
 		}
 		$account_list.append(x)
@@ -328,7 +328,24 @@ let views = [
 		[USER_NAME, 'likes'],
 		async function(url) {
 			let user = await query.user(url.path[0])
-			let tlr = user && await query.user_all_tweets(user.id_str)
+			let tlr = user && await query.user_likes(user.id_str)
+			return [user, tlr]
+		},
+		function([user, tlr]) {
+			scroll_add(draw_profile(user))
+			if (tlr) {
+				let x = new Timeline(tlr)
+				scroll_add(x.elem)
+			}
+		}
+	),
+	// CUSTOM: add/remove user from lists
+	// replaces ambiguous url twitter.com/i/lists/add_member
+	new View(
+		[USER_NAME, 'add_member'],
+		async function(url) {
+			let user = await query.user(url.path[0])
+			let tlr = user && await query.list_ownerships(user.id_str)
 			return [user, tlr]
 		},
 		function([user, tlr]) {
@@ -383,6 +400,21 @@ let views = [
 		async (url) => {
 			let user = await query.user(url.path[0])
 			let tlr = user && await query.user_all_tweets(user.id_str)
+			return [user, tlr]
+		},
+		([user, tlr]) => {
+			scroll_add(draw_profile(user))
+			if (tlr) {
+				let x = new Timeline(tlr)
+				scroll_add(x.elem)
+			}
+		}
+	),
+	new View(
+		[USER_NAME, 'media'],
+		async (url) => {
+			let user = await query.user(url.path[0])
+			let tlr = user && await query.user_media(user.id_str)
 			return [user, tlr]
 		},
 		([user, tlr]) => {

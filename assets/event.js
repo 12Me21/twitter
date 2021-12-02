@@ -109,6 +109,26 @@ click_actions = [
 						elem.disabled = false
 					})
 				}
+			} else if (type=='downvote') {
+				if (elem.classList.contains('own-reaction')) {
+					elem.disabled = true
+					mutate.delete_downvote(id).then(x=>{
+						elem.classList.remove('own-reaction')
+					}).trap(ApiError, x=>{
+						console.log("reaction failed?", x)
+					}).finally(x=>{
+						elem.disabled = false
+					})
+				} else {
+					elem.disabled = true
+					mutate.downvote(id).then(x=>{
+						elem.classList.add('own-reaction')
+					}).trap(ApiError, x=>{
+						console.log("reaction failed?", x)
+					}).finally(x=>{
+						elem.disabled = false
+					})
+				}
 			} else if (type=='bookmark') {
 				id = tweet.dataset.rt_id || id // can't bookmark retweets
 				elem.disabled = true

@@ -56,7 +56,7 @@ class App {
 	async get_secrets() {
 		console.info("fetching secrets")
 		// awful hack.
-		let text = await fetch("https://abs.twimg.com/responsive-web/client-web/main.2a3eb6b5.js").then(x=>x.text())
+		let text = await fetch("https://abs.twimg.com/responsive-web/client-web/main.416edf95.js").then(x=>x.text())
 		//this.bearer = text.match(/a="Web-12",s="(.*?)"/)[1]
 		this.bearer = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
 		this.querys = {}
@@ -171,11 +171,12 @@ class Auth {
 	// all init/login requests will end in one of these two functions
 	// - init_from_tokens()
 	// - init_from_guest()
-	init_from_tokens(sess, auth, save) {
+	init_from_tokens(sess, auth, id, save) {
 		if (this.ready)
 			throw "invalid auth init"
 		this.twitter_sess = sess
 		this.auth_token = auth
+		this.uid = id
 		if (this.twitter_sess && this.auth_token) {
 			this.ready = true
 			console.log('auth ready')
@@ -217,13 +218,13 @@ class Auth {
 		let acc = json(localStorage.getItem('12-accounts')) || {}
 		if (acc[c]) {
 			let tokens = acc[c]
-			this.init_from_tokens(tokens.twitter_sess, tokens.auth_token)
+			this.init_from_tokens(tokens.twitter_sess, tokens.auth_token, tokens.uid)
 			return
 		}
 		
 		for (let name in acc) {
 			let tokens = acc[name]
-			this.init_from_tokens(tokens.twitter_sess, tokens.auth_token)
+			this.init_from_tokens(tokens.twitter_sess, tokens.auth_token, tokens.uid)
 			return
 		}
 		await this.login_guest()
@@ -252,7 +253,7 @@ class Auth {
 		if (url.pathname=="/") {
 			// normal login success
 			let c = decode_set_cookie(x)
-			this.init_from_tokens(c._twitter_sess, c.auth_token, true)
+			this.init_from_tokens(c._twitter_sess, c.auth_token, c.twid.replace("u=",""), true)
 			return ['ok']
 		} else if (url.pathname=='/account/login_verification') {
 			// (two factor authentication)
@@ -288,7 +289,7 @@ class Auth {
 		})
 		if (resp.headers.get('x-12-location')=="https://twitter.com/") {
 			let c = decode_set_cookie(resp)
-			this.init_from_tokens(c._twitter_sess, c.auth_token, true)
+			this.init_from_tokens(c._twitter_sess, c.auth_token, c.twid.replace("u=",""), true)
 			return true
 		}
 	}
@@ -297,6 +298,7 @@ class Auth {
 		return {
 			twitter_sess: this.twitter_sess,
 			auth_token: this.auth_token,
+			uid: this.uid,
 		}
 	}
 	
