@@ -367,7 +367,7 @@ class Query {
 	list_ownerships(user_id) {
 		return new TimelineRequest(cursor =>
 			this.get_graphql('ListOwnerships', {
-				/*userId: my_id,*/
+				userId: this.auth.uid,
 				isListMemberTargetUserId: user_id,
 				count: 20,
 				...cursor&&{cursor},
@@ -378,6 +378,18 @@ class Query {
 		// data.user.result.timeline.timeline contains render instructions
 		// the `is_member` field is `true` for lists which contain the target user.
 	}
+	
+	/* ListMemberships(
+		$userId: NumericString!,
+		$count: Int53,
+		$cursor: String,
+		$includePromotedContent: Boolean = false, $withBirdwatchNotes: Boolean = false, $withBirdwatchPivots: Boolean!, $withHighlightedLabel: Boolean = false, $withTweetQuoteCount: Boolean = false, $withReactionsMetadata: Boolean!, $withReactionsPerspective: Boolean!, $withSuperFollowsTweetFields: Boolean!, $withSuperFollowsUserFields: Boolean!, $withUserResults: Boolean!, $withDmMuting: Boolean = false,
+		$withClientEventToken: Boolean = false,
+		$withVoice: Boolean = false,
+		$isListMemberTargetUserId: NumericString = \\\"0\\\",
+		$withCommunity: Boolean = false, $withSafetyModeUserFields: Boolean = false)*/
+	//sess=decodeURIComponent(decodeURIComponent(twitter_sess)).replace(/\n/g,"")
+	
 	// this is ALSO requested with the previous, for some reason. seems to be redundant
 	// this returns all of your lists that contain `user_id`.
 	list_memberships(user_id) {

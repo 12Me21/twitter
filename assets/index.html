@@ -35,6 +35,9 @@ document.body.innerHTML = `
 			<L- class='Col grow'>
 				<a data-id=title></a>
 				<L- data-id=names class='Row align flex-wrap things'></L->
+				<L- class='Row' data-id=member_controls>
+					<button class='reaction' data-id=toggle data-list_toggle='yeah'>Toggle Member</button>
+				</L->
 			</L->
 		</tl-list>
 	</template>
@@ -272,6 +275,7 @@ document.body.innerHTML = `
 			<a data-id=tab_followers>followers<br><span data-id=follower_count class='pre'></span></a>
 			<a data-id=tab_following>following<br></a>
 			<a data-id=tab_lists>lists</a>
+			<a data-id=tab_member>member of</a>
 		</L->
 		<L- data-id=bar>.</L->
 	</tl-profile>

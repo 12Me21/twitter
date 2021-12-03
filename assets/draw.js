@@ -294,6 +294,13 @@ function draw_list(data) {
 	make_link(ids.title, "https://twitter.com/i/lists/"+data.id_str)
 	ids.names.append(draw_names(data.user_results.result.legacy))
 	ids.icon.style.backgroundImage = "url("+data.default_banner_media.media_info.original_img_url+")" // todo: use the smallened url
+	if ('is_member' in data) {
+		if (data.is_member)
+			ids.toggle.className += ' own-reaction'
+	} else {
+		ids.member_controls.remove()
+	}
+	ids.main.dataset.id = data.id_str
 	return ids.main
 }
 
@@ -628,6 +635,7 @@ function draw_profile(
 	ids.tab_followers.href = base+"/followers"
 	ids.tab_following.href = base+"/following"
 	ids.tab_lists.href = base+"/lists"
+	ids.tab_member.href = base+"/add_member"
 	
 	return ids.main
 	//} else if (result && result.__typename=='UserUnavailable') {

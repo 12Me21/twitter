@@ -349,6 +349,7 @@ let views = [
 			return [user, tlr]
 		},
 		function([user, tlr]) {
+			window.list_user_hack = user.id_str
 			scroll_add(draw_profile(user))
 			if (tlr) {
 				let x = new Timeline(tlr)

@@ -62,6 +62,33 @@ click_actions = [
 		}
 	),
 	new ClickAction(
+		elem => elem instanceof HTMLButtonElement && elem.dataset.list_toggle,
+		async function(elem) {
+			let list = elem.closest('tl-list')
+			let id = list.dataset.id
+			
+			if (elem.classList.contains('own-reaction')) {
+				elem.disabled = true
+				mutate.list_remove_member(id, window.list_user_hack).then(x=>{
+					elem.classList.remove('own-reaction')
+				}).trap(ApiError, x=>{
+					console.log("list remove failed?", x)
+				}).finally(x=>{
+					elem.disabled = false
+				})
+			} else {
+				elem.disabled = true
+				mutate.list_add_member(id, window.list_user_hack).then(x=>{
+					elem.classList.add('own-reaction')
+				}).trap(ApiError, x=>{
+					console.log("list add failed?", x)
+				}).finally(x=>{
+					elem.disabled = false
+				})
+			}
+		}
+	),
+	new ClickAction(
 		elem => elem instanceof HTMLButtonElement && elem.dataset.interact,
 		async function(elem) {
 			let tweet = elem.closest('tl-tweet')
