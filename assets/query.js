@@ -113,7 +113,7 @@ class Query {
 			headers: this.auth.auth_headers(),
 			signal: this.signal,
 		}).then(x=>x.json())
-		if (resp.errors && resp.errors.length)
+		if (resp.errors && resp.errors.length && !resp.data)
 			throw new ApiError(resp)
 		return resp.data
 	}
