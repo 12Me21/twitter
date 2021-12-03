@@ -41,7 +41,7 @@ click_actions = [
 			
 			let [i,o] = await t.gen.get(elem.dataset.cursor)
 			
-			entry.remove()
+			//entry.remove() // we don't remove this because it might contain other Items
 			
 			t.add_instructions(i,o)
 		},
