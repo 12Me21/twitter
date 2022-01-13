@@ -151,13 +151,16 @@ class Query {
 		)
 	}
 	
-	following(cursor, id) {
-		return this.get_graphql('Following', {
-			userId: id,
-			count: 20,
-			cursor: cursor,
-			...query_junk,
-		})
+	following(id) {
+		return new TimelineRequest((cursor) =>
+			this.get_graphql('Following', {
+				userId: id,
+				count: 20,
+				cursor: cursor,
+				...query_junk,
+			}),
+			resp => [resp.user.result.timeline.timeline],
+		)
 	}
 	
 	tweet(id) {

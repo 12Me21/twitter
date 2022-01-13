@@ -2,6 +2,10 @@ function blink() {
 	return new Promise(r => setTimeout(r,0))
 }
 
+function wait(n) {
+	return new Promise(r => setTimeout(r,n))
+}
+
 let auth
 let query
 let mutate
@@ -325,6 +329,21 @@ let views = [
 		}
 	),
 	new View(
+		[USER_NAME, 'following'],
+		async function(url) {
+			let user = await query.user(url.path[0])
+			let tlr = user && await query.following(user.id_str)
+			return [user, tlr]
+		},
+		function([user, tlr]) {
+			scroll_add(draw_profile(user))
+			if (tlr) {
+				let x = new Timeline(tlr)
+				scroll_add(x.elem)
+			}
+		}
+	),
+	new View(
 		[USER_NAME, 'likes'],
 		async function(url) {
 			let user = await query.user(url.path[0])
@@ -335,6 +354,24 @@ let views = [
 			scroll_add(draw_profile(user))
 			if (tlr) {
 				let x = new Timeline(tlr)
+				scroll_add(x.elem)
+			}
+		}
+	),
+	new View(
+		[USER_NAME, 'like_search'],
+		async function(url) {
+			//let params = new URLSearchParams(url.search)
+			//let q = params.get('q')
+			
+			let user = await query.user(url.path[0])
+			let tlr = await query.user_likes(user.id_str)
+			return tlr
+		},
+		function(tlr) {
+			//scroll_add(draw_profile(user))
+			if (tlr) {
+				let x = new Search(tlr)
 				scroll_add(x.elem)
 			}
 		}
@@ -503,4 +540,21 @@ async function render(url) {
 		view.render(resp)
 	}
 	document.documentElement.classList.remove('f-rendering')
+}
+
+async function test() {
+	
+	let t = await query.user_likes(auth.uid)
+	window.RES = []
+	while (1) {
+		let x = await t.get()
+		//console.log(x)
+		//return;
+		let s = JSON.stringify(x)
+		if (/[Pp]oke/.test(s))
+			window.RES.push(s)
+		console.log("next")
+		await wait(1000);
+		//r.push()
+	}
 }
